@@ -1,0 +1,1523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KSB ISMS</title> 
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon_.png') }}">
+    <!-- === CSS FILES === -->
+    <link href="{{ url_for('static', filename='css/tailwind.min.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/all.min.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='fonts/inter-font.css') }}" rel="stylesheet">
+
+
+    <!-- === JS FILES === -->
+    <script src="{{ url_for('static', filename='js/jspdf.umd.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/html2canvas.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/chart.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/chartjs-adapter-date-fns.bundle.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+
+    <!-- CUSTOM STYLES -->
+    <style>
+        /* Base styles */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+
+        .btn-disabled {
+            background-color: #d1d5db; /* Tailwind gray-300 */
+            cursor: not-allowed;
+            color: #6b7280; /* gray-500 */
+        }
+        
+        /* Sidebar styles */
+        .sidebar-transition {
+            transition: transform 0.3s ease-in-out, box-shadow 0.3s ease;
+        }
+        
+        #sidebar-overlay {
+            transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
+        }
+        
+        #sidebar-toggle {
+            transition: all 0.3s ease-in-out;
+            position: fixed;
+            top: 1rem;
+            left: 1rem;
+            z-index: 50;
+            width: 2.5rem;
+            height: 2.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 9999px;
+            background-color: white;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        
+        #sidebar-toggle:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 15px rgba(14, 165, 233, 0.2);
+        }
+        
+        #sidebar-toggle.active {
+            left: 13rem;
+        }
+        
+        #sidebar {
+            width: 16rem;
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            background-color: white;
+            box-shadow: 4px 0 10px rgba(0, 0, 0, 0.05);
+            z-index: 40;
+            display: flex;
+            flex-direction: column;
+            transform: translateX(-100%);
+        }
+        
+        #sidebar.active {
+            transform: translateX(0);
+        }
+        
+        .sidebar-header {
+            padding: 1rem;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .sidebar-logo {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .sidebar-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem;
+        }
+        
+        .sidebar-footer {
+            padding: 1rem;
+            border-top: 1px solid #e5e7eb;
+        }
+        
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1rem;
+            border-radius: 0.375rem;
+            color: #4b5563;
+            transition: all 0.2s ease;
+            margin-bottom: 0.25rem;
+        }
+        
+        .nav-item:hover {
+            background-color: #f3f4f6;
+        }
+        
+        .nav-item.active {
+            background-color: #e0f2fe;
+            color: #0284c7;
+            font-weight: 500;
+        }
+        
+        .nav-item svg {
+            width: 1.25rem;
+            height: 1.25rem;
+            flex-shrink: 0;
+        }
+        
+        /* Toast notification */
+        .toast {
+            animation: slideIn 0.3s ease-out forwards, fadeOut 0.5s 2.5s ease-out forwards;
+            transform: translateY(100%);
+            opacity: 0;
+        }
+        
+        @keyframes slideIn {
+            0% { transform: translateY(100%); opacity: 0; }
+            100% { transform: translateY(0); opacity: 1; }
+        }
+        
+        @keyframes fadeOut {
+            0% { opacity: 1; }
+            100% { opacity: 0; visibility: hidden; }
+        }
+        
+        /* Form elements */
+        input:focus, button:focus {
+            outline: 2px solid #0ea5e9;
+            outline-offset: 2px;
+        }
+        
+        .tab-transition {
+            transition: all 0.2s ease-in-out;
+        }
+        
+        .form-field:hover {
+            border-color: #38bdf8;
+        }
+        
+        /* Carousel styles */
+        #engine-carousel,
+        #powermeter-carousel {
+            transition: transform 0.3s ease-in-out;
+        }
+        
+        .carousel-nav-button {
+            opacity: 0.7;
+            transition: opacity 0.2s ease-in-out, transform 0.2s ease-in-out;
+        }
+        
+        .carousel-nav-button:hover {
+            opacity: 1;
+            transform: translateY(-50%) scale(1.1);
+        }
+
+        /* Card hover effects */
+        .dashboard-card {
+            transition: all 0.2s ease-in-out;
+        }
+        
+        .dashboard-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        /* Section headers */
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .section-header svg {
+            width: 1.5rem;
+            height: 1.5rem;
+            color: #0284c7;
+        }
+
+        .section-header h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #1f2937;
+        }
+
+        /* Tooltip styles */
+        .tooltip {
+            position: relative;
+            display: inline-block;
+        }
+
+        .tooltip .tooltip-text {
+            visibility: hidden;
+            width: 200px;
+            background-color: #1f2937;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 8px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            transform: translateX(-50%);
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 0.75rem;
+        }
+
+        .tooltip .tooltip-text::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: #1f2937 transparent transparent transparent;
+        }
+
+        .tooltip:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        /* Status indicators */
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .status-badge.recording {
+            background-color: #dcfce7;
+            color: #166534;
+        }
+
+        .status-badge.unrecording {
+            background-color: #fee2e2;
+            color: #991b1b;
+        }
+
+        .status-badge .status-dot {
+            width: 0.5rem;
+            height: 0.5rem;
+            border-radius: 9999px;
+            margin-right: 0.375rem;
+        }
+
+        .status-badge.recording .status-dot {
+            background-color: #16a34a;
+        }
+
+        .status-badge.unrecording .status-dot {
+            background-color: #dc2626;
+        }
+
+        /* Chart container styles */
+        .chart-container {
+            background-color: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .chart-title {
+            font-weight: 600;
+            color: #1f2937;
+            display: flex;
+            align-items: center;
+            gap: 0.375rem;
+        }
+
+        .chart-value {
+            font-weight: 600;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+        }
+
+        /* Button styles */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            font-weight: 500;
+            transition: all 0.2s ease-in-out;
+        }
+
+        .btn-primary {
+            background-color: #0284c7;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #0369a1;
+        }
+
+        .btn-danger {
+            background-color: #dc2626;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background-color: #b91c1c;
+        }
+
+        .btn-warning {
+            background-color: #d97706;
+            color: white;
+        }
+
+        .btn-warning:hover {
+            background-color: #b45309;
+        }
+
+        .btn-icon {
+            margin-right: 0.375rem;
+        }
+
+        /* Table styles */
+        .data-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            border-radius: 0.5rem;
+            overflow: hidden;
+        }
+
+        .data-table th {
+            background-color: #f3f4f6;
+            color: #4b5563;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.05em;
+            padding: 0.75rem 1rem;
+            text-align: left;
+        }
+
+        .data-table td {
+            padding: 0.75rem 1rem;
+            border-top: 1px solid #e5e7eb;
+        }
+
+        .data-table tbody tr:hover {
+            background-color: #f9fafb;
+        }
+
+        /* Time range selector */
+        .time-range-btn {
+            transition: all 0.2s ease-in-out;
+        }
+
+        .time-range-btn.active {
+            background-color: #0284c7;
+            color: white;
+        }
+
+        #chart-popup {
+            display: flex; /* Menggunakan flex untuk centering, akan diubah oleh JS */
+        }
+
+        #chart-popup.hidden {
+            display: none;
+        }
+
+    </style>
+</head>
+
+<body class="bg-gray-100 min-h-screen font-sans text-gray-900">
+    <!-- Toast container -->
+    <div id="toast-container" class="fixed bottom-4 right-4 z-50"></div>
+    <div id="notification-container" class="toast-container"></div>
+
+
+    <!-- SIDEBARBOSS -->
+<style>
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+    
+    .sidebar-transition {
+      transition: transform 0.3s ease-in-out, box-shadow 0.3s ease;
+    }
+    
+    #sidebar-overlay {
+      transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
+    }
+    
+    #sidebar-toggle {
+      transition: all 0.3s ease-in-out;
+      position: fixed;
+      top: 1rem;
+      left: 1rem;
+      z-index: 50;
+      width: 2.5rem;
+      height: 2.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 9999px;
+      background-color: white;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+    
+    #sidebar-toggle:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 15px rgba(14, 165, 233, 0.2);
+    }
+    
+    #sidebar-toggle.active {
+      left: 13rem;
+    }
+    
+    #sidebar {
+      width: 16rem;
+      height: 100vh;
+      position: fixed;
+      top: 0;
+      left: 0;
+      background-color: white;
+      box-shadow: 4px 0 10px rgba(0, 0, 0, 0.05);
+      z-index: 40;
+      display: flex;
+      flex-direction: column;
+      transform: translateX(-100%);
+    }
+    
+    #sidebar.active {
+      transform: translateX(0);
+    }
+    
+    .sidebar-header {
+      padding: 1rem;
+      border-bottom: 1px solid #e5e7eb;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    
+    .sidebar-logo {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .sidebar-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1rem;
+    }
+    
+    .sidebar-footer {
+      padding: 1rem;
+      border-top: 1px solid #e5e7eb;
+    }
+    
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.75rem 1rem;
+      border-radius: 0.375rem;
+      color: #4b5563;
+      transition: all 0.2s ease;
+      margin-bottom: 0.25rem;
+    }
+    
+    .nav-item:hover {
+      background-color: #f3f4f6;
+    }
+    
+    .nav-item.active {
+      background-color: #e0f2fe;
+      color: #0284c7;
+      font-weight: 500;
+    }
+    
+    .nav-item svg {
+      width: 1.25rem;
+      height: 1.25rem;
+      flex-shrink: 0;
+    }
+    
+    /* ===== OTHER STYLES ===== */
+    .toast {
+      animation: slideIn 0.3s ease-out forwards, fadeOut 0.5s 2.5s ease-out forwards;
+      transform: translateY(100%);
+      opacity: 0;
+    }
+    
+    @keyframes slideIn {
+      0% { transform: translateY(100%); opacity: 0; }
+      100% { transform: translateY(0); opacity: 1; }
+    }
+    
+    @keyframes fadeOut {
+      0% { opacity: 1; }
+      100% { opacity: 0; visibility: hidden; }
+    }
+    
+    input:focus, button:focus {
+      outline: 2px solid #0ea5e9;
+      outline-offset: 2px;
+    }
+    
+    .tab-transition {
+      transition: all 0.2s ease-in-out;
+    }
+    
+    .form-field:hover {
+      border-color: #38bdf8;
+    }
+    
+    /* Carousel styles */
+    #engine-carousel,
+    #powermeter-carousel {
+      transition: transform 0.3s ease-in-out;
+    }
+    
+    .carousel-nav-button {
+      opacity: 0.7;
+      transition: opacity 0.2s ease-in-out, transform 0.2s ease-in-out;
+    }
+    
+    .carousel-nav-button:hover {
+      opacity: 1;
+      transform: translateY(-50%) scale(1.1);
+    }
+  </style>
+  
+  </head>
+  
+  <body class="bg-gray-50 min-h-screen font-sans text-gray-900">
+  <!-- ===== SIDEBAR COMPONENTS START ===== -->
+  <!-- Sidebar toggle button -->
+  <button id="sidebar-toggle" aria-label="Toggle Sidebar" class="sidebar-toggle">
+    <img src="{{ url_for('static', filename='favicon_.png') }}" alt="KSB Logo" class="w-6 h-6">
+  </button>
+  
+  <!-- Sidebar overlay -->
+  <div id="sidebar-overlay" class="fixed inset-0 bg-black bg-opacity-30 z-30 hidden"></div>
+  
+  <!-- Sidebar -->
+  <div id="sidebar" class="sidebar-transition">
+    <div class="sidebar-header">
+      <div class="sidebar-logo">
+        <img src="{{ url_for('static', filename='favicon_.png') }}" alt="KSB Logo" class="w-6 h-6">
+        <span class="text-xl font-bold">ISMS</span>
+      </div>
+      <button id="sidebar-close" aria-label="Close Sidebar" class="p-1 rounded-full hover:bg-gray-100">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"></polyline>
+        </svg>
+      </button>
+    </div>
+    <div class="sidebar-content">
+      <nav>
+        <ul class="space-y-1">
+          <li>
+            <a href="/" class="nav-item active">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="7" height="7"></rect>
+                <rect x="14" y="3" width="7" height="7"></rect>
+                <rect x="14" y="14" width="7" height="7"></rect>
+                <rect x="3" y="14" width="7" height="7"></rect>
+              </svg>
+              <span>Dashboard</span>
+            </a>
+          </li>
+          <li>
+            <a href="/settings" class="nav-item">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="3"></circle>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+            </svg>
+            <span>Settings</span>
+          </a>
+        </li>
+      </ul>
+    </nav>
+  </div>
+    <div class="sidebar-footer">
+      <div class="nav-item">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+          <circle cx="12" cy="7" r="4"></circle>
+        </svg>
+        <span>User Profile</span>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Sidebar JavaScript -->
+  <script>
+    // Initialize sidebar functionality
+    (function initSidebar() {
+      const sidebar = document.getElementById('sidebar');
+      const sidebarToggle = document.getElementById('sidebar-toggle');
+      const sidebarClose = document.getElementById('sidebar-close');
+      const sidebarOverlay = document.getElementById('sidebar-overlay');
+      
+      // Check if sidebar state is stored in localStorage
+      const sidebarState = localStorage.getItem('sidebarState');
+      
+      // Open sidebar function
+      function openSidebar() {
+        sidebar.classList.add('active');
+        sidebarToggle.classList.add('active');
+        sidebarOverlay.classList.remove('hidden');
+        localStorage.setItem('sidebarState', 'open');
+      }
+      
+      // Close sidebar function
+      function closeSidebar() {
+        sidebar.classList.remove('active');
+        sidebarToggle.classList.remove('active');
+        sidebarOverlay.classList.add('hidden');
+        localStorage.setItem('sidebarState', 'closed');
+      }
+      
+      // Initialize sidebar based on stored state
+      if (sidebarState === 'open') {
+        openSidebar();
+      }
+      
+      // Event listeners
+      sidebarToggle.addEventListener('click', function() {
+        if (sidebar.classList.contains('active')) {
+          closeSidebar();
+        } else {
+          openSidebar();
+        }
+      });
+      
+      sidebarClose.addEventListener('click', closeSidebar);
+      sidebarOverlay.addEventListener('click', closeSidebar);
+      
+      // Close sidebar with Escape key
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && sidebar.classList.contains('active')) {
+          closeSidebar();
+        }
+      });
+      
+      // Handle responsive behavior
+      function handleResponsiveLayout() {
+        const isMobile = window.innerWidth < 768;
+        if (isMobile && sidebar.classList.contains('active')) {
+          closeSidebar();
+        }
+      }
+      
+      window.addEventListener('resize', handleResponsiveLayout);
+      
+      // Highlight current page in sidebar
+      const currentPath = window.location.pathname;
+      const navItems = document.querySelectorAll('.nav-item');
+      
+      navItems.forEach(item => {
+        const href = item.getAttribute('href');
+        if (href === currentPath) {
+          item.classList.add('active');
+        } else {
+          item.classList.remove('active');
+        }
+      });
+    })();
+  </script>
+  <!-- ===== SIDEBAR COMPONENTS END ===== -->
+
+    <!-- Main content -->
+    <div class="w-full px-4 sm:px-6 lg:px-8 py-6 ml-0 md:ml-0 transition-all duration-300" id="main-content">
+        <!-- Header -->
+        <div class="bg-white rounded-xl shadow-md p-4 mb-6">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div class="flex items-center">  
+                    <img src="{{ url_for('static', filename='LogoKSB.png') }}" alt="KSB Logo" class="h-10 md:h-12">
+                    <div class="ml-4">
+                        <h1 class="text-xl font-bold text-gray-800">Integrated Sensor Monitoring System</h1>
+                        <p class="text-sm text-gray-500">Real-time pump performance monitoring dashboard</p>
+                    </div>
+                </div>
+                <div class="flex flex-col md:flex-row items-start md:items-center gap-3">
+                    <div class="flex items-center">
+                        <span class="mr-2 text-gray-600 text-sm font-medium">Status:</span>
+                        <span id="status-indicator" class="status-badge unrecording">
+                            <span class="status-dot"></span>
+                            Unrecording
+                        </span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button id="start" class="btn btn-disabled">
+                            <i class="fas fa-play mr-2"></i>
+                            Start
+                        </button>
+                        <button id="stop" class="btn btn-danger">
+                            <i class="fas fa-stop mr-2"></i> 
+                            Stop
+                        </button>
+                        <div class="tooltip">
+                            <button id="clear" class="btn btn-warning">
+                                <i class="fas fa-trash mr-2"></i> 
+                                Clear Data
+                            </button>
+                            <span class="tooltip-text">This will permanently delete all logged data</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Notification -->
+        <div id="notification" class="hidden mb-4 p-4 rounded-lg"></div>
+        
+        <!-- System Overview -->
+        <div class="bg-white rounded-xl shadow-md p-6 mb-6">
+            <div class="section-header">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                </svg>
+                <h2>System Overview</h2>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Channel 1 Card -->
+                <div class="dashboard-card bg-gradient-to-br from-blue-50 to-white rounded-xl shadow-md p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center space-x-2">
+                            <h3 id="ch1-title" class="text-lg font-semibold text-gray-800"></h3>
+                        </div>
+                        <div class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">CH1</div>
+                    </div>
+                    <div id="ch1-value" class="text-3xl font-bold text-blue-600 mb-2">0.00000</div>
+                    <div class="text-sm text-gray-500 mb-4">
+                        <span id="ch1-unit" class="font-medium"></span><br>
+                        Last updated: <span id="ch1-updated">--</span>
+                    </div>
+                    <div class="h-32">
+                        <canvas id="ch1-chart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Channel 2 Card -->
+                <div class="dashboard-card bg-gradient-to-br from-green-50 to-white rounded-xl shadow-md p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center space-x-2">
+                            <h3 id="ch2-title" class="text-lg font-semibold text-gray-800"></h3>
+                        </div>
+                        <div class="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">CH2</div>
+                    </div>
+                    <div id="ch2-value" class="text-3xl font-bold text-green-600 mb-2">0.00000</div>
+                    <div class="text-sm text-gray-500 mb-4">
+                        <span id="ch2-unit" class="font-medium"></span><br>
+                        Last updated: <span id="ch2-updated">--</span>
+                    </div>
+                    <div class="h-32">
+                        <canvas id="ch2-chart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Channel 3 Card -->
+                <div class="dashboard-card bg-gradient-to-br from-purple-50 to-white rounded-xl shadow-md p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center space-x-2">
+                            <h3 id="ch3-title" class="text-lg font-semibold text-gray-800"></h3>
+                        </div>
+                        <div class="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm font-medium">CH3</div>
+                    </div>
+                    <div id="ch3-value" class="text-3xl font-bold text-purple-600 mb-2">0.00000</div>
+                    <div class="text-sm text-gray-500 mb-4">
+                        <span id="ch3-unit" class="font-medium"></span><br>
+                        Last updated: <span id="ch3-updated">--</span>
+                    </div>
+                    <div class="h-32">
+                        <canvas id="ch3-chart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Channel 4 Card -->
+                <div class="dashboard-card bg-gradient-to-br from-red-50 to-white rounded-xl shadow-md p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center space-x-2">
+                            <h3 id="ch4-title" class="text-lg font-semibold text-gray-800"></h3>
+                        </div>
+                        <div class="bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm font-medium">CH4</div>
+                    </div>
+                    <div id="ch4-value" class="text-3xl font-bold text-red-600 mb-2">0.00000</div>
+                    <div class="text-sm text-gray-500 mb-4">
+                        <span id="ch4-unit" class="font-medium"></span><br>
+                        Last updated: <span id="ch4-updated">--</span>
+                    </div>
+                    <div class="h-32">
+                        <canvas id="ch4-chart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Channel 5 Card -->
+                <div class="dashboard-card bg-gradient-to-br from-pink-50 to-white rounded-xl shadow-md p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center space-x-2">
+                            <h3 id="ch5-title" class="text-lg font-semibold text-gray-800"></h3>
+                        </div>
+                        <div class="bg-pink-100 text-pink-800 px-3 py-1 rounded-full text-sm font-medium">CH5</div>
+                    </div>
+                    <div id="ch5-value" class="text-3xl font-bold text-pink-600 mb-2">0.00000</div>
+                    <div class="text-sm text-gray-500 mb-4">
+                        <span id="ch5-unit" class="font-medium"></span><br>
+                        Last updated: <span id="ch5-updated">--</span>
+                    </div>
+                    <div class="h-32">
+                        <canvas id="ch5-chart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Channel 6 Card -->
+                <div class="dashboard-card bg-gradient-to-br from-yellow-50 to-white rounded-xl shadow-md p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center space-x-2">
+                            <h3 id="ch6-title" class="text-lg font-semibold text-gray-800"></h3>
+                        </div>
+                        <div class="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-sm font-medium">CH6</div>
+                    </div>
+                    <div id="ch6-value" class="text-3xl font-bold text-yellow-600 mb-2">0.00000</div>
+                    <div class="text-sm text-gray-500 mb-4">
+                        <span id="ch6-unit" class="font-medium"></span><br>
+                        Last updated: <span id="ch6-updated">--</span>
+                    </div>
+                    <div class="h-32">
+                        <canvas id="ch6-chart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Channel 7 Card -->
+                <div class="dashboard-card bg-gradient-to-br from-gray-50 to-white rounded-xl shadow-md p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center space-x-2">
+                            <h3 id="ch7-title" class="text-lg font-semibold text-gray-800"></h3>
+                        </div>
+                        <div class="bg-gray-100 text-gray-800 px-3 py-1 rounded-full text-sm font-medium">CH7</div>
+                    </div>
+                    <div id="ch7-value" class="text-3xl font-bold text-gray-600 mb-2">0.00000</div>
+                    <div class="text-sm text-gray-500 mb-4">
+                        <span id="ch7-unit" class="font-medium"></span><br>
+                        Last updated: <span id="ch7-updated">--</span>
+                    </div>
+                    <div>
+                        <canvas id="ch7-chart"></canvas>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        
+
+        <!-- Engine Data Section -->
+        <div class="bg-white rounded-xl shadow-md p-6 mb-6">
+            <div class="section-header">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
+                </svg>
+                <h2>Engine Data</h2>
+                <div class="ml-auto text-sm text-gray-500">Swipe or use arrows to navigate</div>
+            </div>
+            <div class="relative">
+                <!-- Carousel container -->
+                <div class="overflow-hidden">
+                    <div id="engine-carousel" class="flex transition-transform duration-300 ease-in-out">
+                        <!-- Engine Speed Chart -->
+                        <div class="w-full md:w-1/2 lg:w-1/2 flex-shrink-0 px-2">
+                            <div class="chart-container h-full">
+                                <div class="chart-header">
+                                    <div class="chart-title">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                        </svg>
+                                        Engine Speed
+                                    </div>
+                                    <div class="chart-value bg-red-50 text-red-700" id="engine-speed-value">0.00</div>
+                                </div>
+                                <div class="h-48">
+                                    <canvas id="engine-speed-chart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Engine Load Chart -->
+                        <div class="w-full md:w-1/2 lg:w-1/2 flex-shrink-0 px-2">
+                            <div class="chart-container h-full">
+                                <div class="chart-header">
+                                    <div class="chart-title">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                        </svg>
+                                        Engine Load
+                                    </div>
+                                    <div class="chart-value bg-blue-50 text-blue-700" id="engine-load-value">0.00</div>
+                                </div>
+                                <div class="h-48">
+                                    <canvas id="engine-load-chart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Engine Fuel Rate Chart -->
+                        <div class="w-full md:w-1/2 lg:w-1/2 flex-shrink-0 px-2">
+                            <div class="chart-container h-full">
+                                <div class="chart-header">
+                                    <div class="chart-title">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                                        </svg>
+                                        Fuel Rate
+                                    </div>
+                                    <div class="chart-value bg-yellow-50 text-yellow-700" id="engine-fuelrate-value">0.00</div>
+                                </div>
+                                <div class="h-48">
+                                    <canvas id="engine-fuelrate-chart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Engine Run Hour Chart -->
+                        <div class="w-full md:w-1/2 lg:w-1/2 flex-shrink-0 px-2">
+                            <div class="chart-container h-full">
+                                <div class="chart-header">
+                                    <div class="chart-title">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-teal-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                        Run Hours
+                                    </div>
+                                    <div class="chart-value bg-teal-50 text-teal-700" id="engine-runhour-value">0.00</div>
+                                </div>
+                                <div class="h-48">
+                                    <canvas id="engine-runhour-chart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Engine Oil Pressure Chart -->
+                        <div class="w-full md:w-1/2 lg:w-1/2 flex-shrink-0 px-2">
+                            <div class="chart-container h-full">
+                                <div class="chart-header">
+                                    <div class="chart-title">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                                        </svg>
+                                        Oil Pressure
+                                    </div>
+                                    <div class="chart-value bg-purple-50 text-purple-700" id="engine-oilpressure-value">0.00</div>
+                                </div>
+                                <div class="h-48">
+                                    <canvas id="engine-oilpressure-chart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Navigation buttons -->
+                <button id="engine-prev" class="absolute left-0 top-1/2 transform -translate-y-1/2 bg-white rounded-full p-2 shadow-md z-10 focus:outline-none">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-chevron-left">
+                        <polyline points="15 18 9 12 15 6"></polyline>
+                    </svg>
+                </button>
+                <button id="engine-next" class="absolute right-0 top-1/2 transform -translate-y-1/2 bg-white rounded-full p-2 shadow-md z-10 focus:outline-none">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-chevron-right">
+                        <polyline points="9 18 15 12 9 6"></polyline>
+                    </svg>
+                </button>
+                
+                <!-- Pagination indicators -->
+                <div class="flex justify-center mt-4">
+                    <div id="engine-pagination" class="flex space-x-2">
+                        <!-- Pagination dots will be generated by JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Powermeter Data Section -->
+        <div class="bg-white rounded-xl shadow-md p-6 mb-6">
+            <div class="section-header">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M18 20V10"></path>
+                    <path d="M12 20V4"></path>
+                    <path d="M6 20v-6"></path>
+                </svg>
+                <h2>Powermeter Data</h2>
+                <div class="ml-auto text-sm text-gray-500">Swipe or use arrows to navigate</div>
+            </div>
+            <div class="relative">
+                <!-- Carousel container -->
+                <div class="overflow-hidden">
+                    <div id="powermeter-carousel" class="flex transition-transform duration-300 ease-in-out">
+                        <!-- Powermeter Current Chart -->
+                        <div class="w-full md:w-1/2 lg:w-1/2 flex-shrink-0 px-2">
+                            <div class="chart-container h-full">
+                                <div class="chart-header">
+                                    <div class="chart-title">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                        </svg>
+                                        Current
+                                    </div>
+                                    <div class="chart-value bg-blue-50 text-blue-700" id="powermeter-current-value">0.00</div>
+                                </div>
+                                <div class="h-48">
+                                    <canvas id="powermeter-current-chart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Powermeter Voltage Chart -->
+                        <div class="w-full md:w-1/2 lg:w-1/2 flex-shrink-0 px-2">
+                            <div class="chart-container h-full">
+                                <div class="chart-header">
+                                    <div class="chart-title">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                        </svg>
+                                        Voltage
+                                    </div>
+                                    <div class="chart-value bg-red-50 text-red-700" id="powermeter-voltage-value">0.00</div>
+                                </div>
+                                <div class="h-48">
+                                    <canvas id="powermeter-voltage-chart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Powermeter Active Chart -->
+                        <div class="w-full md:w-1/2 lg:w-1/2 flex-shrink-0 px-2">
+                            <div class="chart-container h-full">
+                                <div class="chart-header">
+                                    <div class="chart-title">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2 1 3 3 3h10c2 0 3-1 3-3V7c0-2-1-3-3-3H7c-2 0-3 1-3 3z" />
+                                            <path d="M9 17l6-6"></path>
+                                        </svg>
+                                        Active
+                                    </div>
+                                    <div class="chart-value bg-yellow-50 text-yellow-700" id="powermeter-r-value">0.00</div>
+                                </div>
+                                <div class="h-48">
+                                    <canvas id="powermeter-r-chart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Powermeter Reactive Chart -->
+                        <div class="w-full md:w-1/2 lg:w-1/2 flex-shrink-0 px-2">
+                            <div class="chart-container h-full">
+                                <div class="chart-header">
+                                    <div class="chart-title">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-teal-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2 1 3 3 3h10c2 0 3-1 3-3V7c0-2-1-3-3-3H7c-2 0-3 1-3 3z" />
+                                            <path d="M9 9h.01"></path>
+                                            <path d="M15 15h.01"></path>
+                                        </svg>
+                                        Reactive
+                                    </div>
+                                    <div class="chart-value bg-teal-50 text-teal-700" id="powermeter-q-value">0.00</div>
+                                </div>
+                                <div class="h-48">
+                                    <canvas id="powermeter-q-chart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Powermeter Apparent Chart -->
+                        <div class="w-full md:w-1/2 lg:w-1/2 flex-shrink-0 px-2">
+                            <div class="chart-container h-full">
+                                <div class="chart-header">
+                                    <div class="chart-title">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2 1 3 3 3h10c2 0 3-1 3-3V7c0-2-1-3-3-3H7c-2 0-3 1-3 3z" />
+                                            <path d="M9 15l3-3 3 3"></path>
+                                        </svg>
+                                        Apparent
+                                    </div>
+                                    <div class="chart-value bg-purple-50 text-purple-700" id="powermeter-s-value">0.00</div>
+                                </div>
+                                <div class="h-48">
+                                    <canvas id="powermeter-s-chart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Navigation buttons -->
+                <button id="powermeter-prev" class="absolute left-0 top-1/2 transform -translate-y-1/2 bg-white rounded-full p-2 shadow-md z-10 focus:outline-none">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-chevron-left">
+                        <polyline points="15 18 9 12 15 6"></polyline>
+                    </svg>
+                </button>
+                <button id="powermeter-next" class="absolute right-0 top-1/2 transform -translate-y-1/2 bg-white rounded-full p-2 shadow-md z-10 focus:outline-none">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-chevron-right">
+                        <polyline points="9 18 15 12 9 6"></polyline>
+                    </svg>
+                </button>
+                
+                <!-- Pagination indicators -->
+                <div class="flex justify-center mt-4">
+                    <div id="powermeter-pagination" class="flex space-x-2">
+                        <!-- Pagination dots will be generated by JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stacked Data Visualization -->
+        <div class="bg-white rounded-xl shadow-md p-6 mb-6">
+            <div class="section-header">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="20" x2="18" y2="10"></line>
+                    <line x1="12" y1="20" x2="12" y2="4"></line>
+                    <line x1="6" y1="20" x2="6" y2="14"></line>
+                </svg>
+                <h2>Stacked Data Visualization</h2>
+            </div>
+        
+            <!-- Time Range Selector -->
+            <div id="time-range-wrapper" class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Select Time Range:</label>
+                <div class="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                    <button onclick="selectTimeRange('1h')" 
+                            class="time-range-btn px-3 py-1.5 bg-blue-100 hover:bg-blue-200 text-blue-800 rounded-md text-sm font-medium transition-colors">
+                        1H
+                    </button>
+                    <button onclick="selectTimeRange('6h')" 
+                            class="time-range-btn px-3 py-1.5 bg-blue-100 hover:bg-blue-200 text-blue-800 rounded-md text-sm font-medium transition-colors">
+                        6H
+                    </button>
+                    <button onclick="selectTimeRange('24h')" 
+                            class="time-range-btn px-3 py-1.5 bg-blue-100 hover:bg-blue-200 text-blue-800 rounded-md text-sm font-medium transition-colors">
+                        24H
+                    </button>
+                    <button onclick="selectTimeRange('7d')" 
+                            class="time-range-btn px-3 py-1.5 bg-blue-100 hover:bg-blue-200 text-blue-800 rounded-md text-sm font-medium transition-colors">
+                        7D
+                    </button>
+                    <button onclick="selectTimeRange('30d')" 
+                            class="time-range-btn px-3 py-1.5 bg-blue-100 hover:bg-blue-200 text-blue-800 rounded-md text-sm font-medium transition-colors">
+                        30D
+                    </button>
+                    <button onclick="selectTimeRange('all')" 
+                            class="time-range-btn px-3 py-1.5 bg-blue-100 hover:bg-blue-200 text-blue-800 rounded-md text-sm font-medium transition-colors">
+                        ALL
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Synchronized Stacked Charts Container -->
+            <div class="mb-6 bg-gray-50 p-4 rounded-lg border border-gray-200">
+                <!-- CH1 Chart -->
+                <div class="chart-wrapper mb-2 bg-white p-3 rounded-lg shadow-sm hover:shadow-md transition-shadow relative">
+                    <div class="flex items-center justify-between mb-2">
+                        <div class="flex items-center">
+                            <div class="w-3 h-3 bg-blue-600 rounded-full mr-2"></div>
+                            <h3 class="text-sm font-medium text-gray-700" id="stacked-ch1-title">Discharge Pressure</h3>
+                        </div>
+                    </div>
+                    <div class="relative h-[150px]">
+                        <canvas id="ch1-stacked-chart"></canvas>
+                    </div>
+                </div>
+                
+                <!-- CH2 Chart -->
+                <div class="chart-wrapper mb-2 bg-white p-3 rounded-lg shadow-sm hover:shadow-md transition-shadow relative">
+                    <div class="flex items-center justify-between mb-2">
+                        <div class="flex items-center">
+                            <div class="w-3 h-3 bg-green-600 rounded-full mr-2"></div>
+                            <h3 class="text-sm font-medium text-gray-700" id="stacked-ch2-title">Suction Pressure</h3>
+                        </div>
+                    </div>
+                    <div class="relative h-[150px]">
+                        <canvas id="ch2-stacked-chart"></canvas>
+                    </div>
+                </div>
+                
+                <!-- CH3 Chart -->
+                <div class="chart-wrapper mb-2 bg-white p-3 rounded-lg shadow-sm hover:shadow-md transition-shadow relative">
+                    <div class="flex items-center justify-between mb-2">
+                        <div class="flex items-center">
+                            <div class="w-3 h-3 bg-purple-600 rounded-full mr-2"></div>
+                            <h3 class="text-sm font-medium text-gray-700" id="stacked-ch3-title">Vibration</h3>
+                        </div>
+                    </div>
+                    <div class="relative h-[200px]">
+                        <canvas id="ch3-stacked-chart"></canvas>
+                    </div>
+                </div>
+
+                <!-- ch4 Chart -->
+                <div class="chart-wrapper mb-2 bg-white p-3 rounded-lg shadow-sm hover:shadow-md transition-shadow relative">
+                    <div class="flex items-center justify-between mb-2">
+                        <div class="flex items-center">
+                            <div class="w-3 h-3 bg-red-600 rounded-full mr-2"></div>
+                            <h3 class="text-sm font-medium text-gray-700" id="stacked-ch4-title">xxxxx</h3>
+                        </div>
+                    </div>
+                    <div class="relative h-[150px]">
+                        <canvas id="ch4-stacked-chart"></canvas>
+                    </div>
+                </div>
+
+                <!-- ch5 Chart -->
+                <div class="chart-wrapper mb-2 bg-white p-3 rounded-lg shadow-sm hover:shadow-md transition-shadow relative">
+                    <div class="flex items-center justify-between mb-2">
+                        <div class="flex items-center">
+                            <div class="w-3 h-3 bg-pink-600 rounded-full mr-2"></div>
+                            <h3 class="text-sm font-medium text-gray-700" id="stacked-ch5-title">xxxxx</h3>
+                        </div>
+                    </div>
+                    <div class="relative h-[150px]">
+                        <canvas id="ch5-stacked-chart"></canvas>
+                    </div>
+                </div>
+
+                <!-- ch6 Chart -->
+                <div class="chart-wrapper mb-2 bg-white p-3 rounded-lg shadow-sm hover:shadow-md transition-shadow relative">
+                    <div class="flex items-center justify-between mb-2">
+                        <div class="flex items-center">
+                            <div class="w-3 h-3 bg-yellow-600 rounded-full mr-2"></div>
+                            <h3 class="text-sm font-medium text-gray-700" id="stacked-ch6-title">xxxxx</h3>
+                        </div>
+                    </div>
+                    <div class="relative h-[150px]">
+                        <canvas id="ch6-stacked-chart"></canvas>
+                    </div>
+                </div>
+
+                <!-- ch7 Chart -->
+                <div class="chart-wrapper mb-2 bg-white p-3 rounded-lg shadow-sm hover:shadow-md transition-shadow relative ">
+                    <div class="flex items-center justify-between mb-2">
+                        <div class="flex items-center">
+                            <div class="w-3 h-5 bg-gray-600 rounded-full mr-2"></div>
+                            <h3 class="text-sm font-medium text-gray-700" id="stacked-ch7-title">xxxxx</h3>
+                        </div>
+                    </div>
+                    <div class="relative h-[150px]">
+                        <canvas id="ch7-stacked-chart"></canvas>
+                    </div>
+                </div>
+                
+            </div>
+
+            
+        </div>
+
+
+        <!-- Device Settings -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <!-- Powermeter Display Section -->
+            <div class="bg-white rounded-xl shadow-md p-6">
+                <div class="section-header">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="2" y="7" width="20" height="15" rx="2" ry="2"></rect>
+                        <polyline points="17 2 12 7 7 2"></polyline>
+                    </svg>
+                    <h2>Powermeter Settings</h2>
+                </div>
+                <div id="powermeter-display" class="bg-gray-50 p-4 rounded-lg">
+                    <div class="flex justify-center items-center h-32 text-gray-400">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span>Loading powermeter data...</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Engine Display Section -->
+            <div class="bg-white rounded-xl shadow-md p-6">
+                <div class="section-header">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
+                    </svg>
+                    <h2>Engine Settings</h2>
+                </div>
+                <div id="engine-display" class="bg-gray-50 p-4 rounded-lg">
+                    <div class="flex justify-center items-center h-32 text-gray-400">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span>Loading engine data...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- DATA TABLE SECTION -->
+      <div class="bg-white rounded-xl shadow-md p-6 fade-in">
+        <div class="flex items-center justify-between mb-6">
+          <h2 class="text-xl font-semibold text-gray-800">Recent Data Log</h2>
+                <div class="flex gap-2">
+                    <button id="download-local" class="btn btn-primary">
+                      <i class="fas fa-download mr-2"></i>
+                      Download to Local
+                    </button>
+                  
+                    <button id="download-usb" class="btn btn-primary">
+                      <i class="fas fa-save mr-2"></i>
+                      Download to USB
+                    </button>
+                  </div>
+        </div>
+        
+        <div class="overflow-x-auto">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
+                <th id="table-ch1-header" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">CH1</th>
+                <th id="table-ch2-header" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">CH2</th>
+                <th id="table-ch3-header" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">CH3</th>
+                <th id="table-ch4-header" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">CH4</th>
+                <th id="table-ch5-header" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">CH5</th>
+                <th id="table-ch6-header" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">CH6</th>
+                <th id="table-ch7-header" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">CH7</th>
+              </tr>
+            </thead>
+            <tbody id="data-table" class="bg-white divide-y divide-gray-200">
+              <tr>
+                <td colspan="10" class="px-6 py-4 text-center text-gray-500">No data available</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- FOOTER -->
+      <div class="mt-8 text-center text-sm text-gray-500">
+        <p class="mt-2">© 2025 KSB Integrated Sensor Monitoring System. All rights reserved.</p>
+        <p class="mt-1">Version 1.0.0</p>
+      </div>
+    </div>
+  </div>
+
+    <script>
+        // Add this to adjust main content when sidebar is open
+        (function() {
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.getElementById('main-content');
+            
+            function adjustMainContent() {
+                if (sidebar.classList.contains('active') && window.innerWidth >= 768) {
+                    mainContent.classList.add('md:ml-64');
+                } else {
+                    mainContent.classList.remove('md:ml-64');
+                }
+            }
+            
+            // Watch for sidebar state changes
+            const observer = new MutationObserver(function(mutations) {
+                mutations.forEach(function(mutation) {
+                    if (mutation.attributeName === 'class') {
+                        adjustMainContent();
+                    }
+                });
+            });
+            
+            observer.observe(sidebar, { attributes: true });
+            
+            // Initial adjustment
+            adjustMainContent();
+            
+            // Adjust on window resize
+            window.addEventListener('resize', adjustMainContent);
+        })();
+
+        // Initialize time range buttons
+        document.addEventListener('DOMContentLoaded', function() {
+            const timeRangeButtons = document.querySelectorAll('.time-range-btn');
+            timeRangeButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    timeRangeButtons.forEach(btn => {
+                        btn.classList.remove('active', 'bg-blue-600', 'text-white');
+                        btn.classList.add('bg-blue-100', 'text-blue-800');
+                    });
+                    this.classList.remove('bg-blue-100', 'text-blue-800');
+                    this.classList.add('active', 'bg-blue-600', 'text-white');
+                });
+            });
+
+
+            // Add this function to update sensor units
+            function updateSensorUnits() {
+                fetch("/load-sensors")
+                    .then((res) => res.json())
+                    .then((config) => {
+                        for (let i = 1; i <= 7; i++) {
+                            const sensor = config[`sensor${i}`];
+                            const unitElement = document.getElementById(`ch${i}-unit`);
+                            if (unitElement && sensor && sensor.unit) {
+                                unitElement.textContent = sensor.unit;
+                            }
+                        }
+                    })
+                    .catch((err) => {
+                        console.error("Failed to load sensor units:", err);
+                    });
+            }
+
+            updateSensorUnits();
+        });
+    </script>
+<script>
+// Handle interval synchronization on index page
+document.addEventListener('DOMContentLoaded', function() {
+    // Listen for BroadcastChannel messages from settings page
+    if (typeof BroadcastChannel !== 'undefined') {
+        const channel = new BroadcastChannel('interval-sync')
+        channel.onmessage = (event) => {
+            if (event.data.type === 'interval-changed') {
+                console.log(`Received interval change: ${event.data.interval}ms`)
+                if (typeof window.handleIntervalChange === 'function') {
+                    window.handleIntervalChange(event.data.interval)
+                }
+            }
+        }
+    }
+    
+    // Listen for storage changes as fallback
+    window.addEventListener('storage', (event) => {
+        if (event.key === 'serverInterval') {
+            const newInterval = parseInt(event.newValue)
+            if (!isNaN(newInterval) && newInterval > 0) {
+                console.log(`Storage interval change: ${newInterval}ms`)
+                if (typeof window.handleIntervalChange === 'function') {
+                    window.handleIntervalChange(newInterval)
+                }
+            }
+        }
+    })
+    
+    // Sync interval on page load
+    if (typeof window.getCurrentInterval === 'function') {
+        window.getCurrentInterval().then(() => {
+            console.log('Initial interval sync completed')
+        })
+    }
+})
+</script>
+
+<div id="chart-popup" class="fixed inset-0 bg-black bg-opacity-60 items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-lg shadow-2xl w-10/12 md:w-4/5 lg:w-3/4 max-w-6xl p-4 md:p-6 relative">
+        <button id="popup-close-btn" class="absolute top-2 right-2 text-gray-500 hover:text-gray-800 transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+        </button>
+
+        <h3 id="popup-chart-title" class="text-xl font-bold text-gray-800 mb-4">Chart Detail</h3>
+        <div class="mb-4 flex items-center gap-2">
+    <label for="popup-time-range" class="text-sm font-medium text-gray-700 hidden">View Range:</label>
+    <select id="popup-time-range" class="text-sm border border-gray-300 rounded-md px-2 py-1 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 hidden">
+        <option value="1h">Last 1 Hour</option>
+        <option value="6h">Last 6 Hours</option>
+        <option value="24h">Last 24 Hours</option>
+        <option value="7d">Last 7 Days</option>
+        <option value="30d">Last 30 Days</option>
+        <option value="all">All Time</option>
+    </select>
+</div>
+        <div class="relative h-[60vh]">
+            <canvas id="popup-chart-canvas"></canvas>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

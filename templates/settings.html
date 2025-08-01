@@ -1,0 +1,997 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Settings - KSB ISMS</title>
+<link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon_.png') }}">
+
+<!-- CSS FILES -->
+<link href="{{ url_for('static', filename='css/tailwind.min.css') }}" rel="stylesheet">
+<link href="{{ url_for('static', filename='css/all.min.css') }}" rel="stylesheet">
+<link href="{{ url_for('static', filename='fonts/inter-font.css') }}" rel="stylesheet">
+
+<!-- JS FILES -->
+<script src="{{ url_for('static', filename='js/jspdf.umd.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/html2canvas.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/chart.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/chartjs-adapter-date-fns.bundle.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/script.js') }}"></script>
+
+<style>
+  /* GLOBAL STYLES */
+  body {
+    font-family: 'Inter', sans-serif;
+  }
+  
+  /* SIDEBAR STYLES */
+  .sidebar-transition {
+    transition: transform 0.3s ease-in-out, box-shadow 0.3s ease;
+  }
+  
+  #sidebar-overlay {
+    transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
+  }
+  
+  #sidebar-toggle {
+    transition: all 0.3s ease-in-out;
+    position: fixed;
+    top: 1rem;
+    left: 1rem;
+    z-index: 50;
+    width: 2.5rem;
+    height: 2.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9999px;
+    background-color: white;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  }
+  
+  #sidebar-toggle:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 15px rgba(14, 165, 233, 0.2);
+  }
+  
+  #sidebar-toggle.active {
+    left: 13rem;
+  }
+  
+  #sidebar {
+    width: 16rem;
+    height: 100vh;
+    position: fixed;
+    top: 0;
+    left: 0;
+    background-color: white;
+    box-shadow: 4px 0 10px rgba(0, 0, 0, 0.05);
+    z-index: 40;
+    display: flex;
+    flex-direction: column;
+    transform: translateX(-100%);
+  }
+  
+  #sidebar.active {
+    transform: translateX(0);
+  }
+  
+  .sidebar-header {
+    padding: 1rem;
+    border-bottom: 1px solid #e5e7eb;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  
+  .sidebar-logo {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  
+  .sidebar-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1rem;
+  }
+  
+  .sidebar-footer {
+    padding: 1rem;
+    border-top: 1px solid #e5e7eb;
+  }
+  
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    border-radius: 0.375rem;
+    color: #4b5563;
+    transition: all 0.2s ease;
+    margin-bottom: 0.25rem;
+    text-decoration: none;
+  }
+  
+  .nav-item:hover {
+    background-color: #f3f4f6;
+  }
+  
+  .nav-item.active {
+    background-color: #e0f2fe;
+    color: #0284c7;
+    font-weight: 500;
+  }
+  
+  .nav-item svg {
+    width: 1.25rem;
+    height: 1.25rem;
+    flex-shrink: 0;
+  }
+  
+  /* FORM STYLES */
+  .form-field {
+    transition: border-color 0.2s ease;
+  }
+  
+  .form-field:hover {
+    border-color: #38bdf8;
+  }
+  
+  .form-field:focus {
+    outline: 2px solid #0ea5e9;
+    outline-offset: 2px;
+    border-color: #0ea5e9;
+  }
+  
+  /* TOGGLE SWITCH STYLES */
+  .toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 40px;
+    height: 24px;
+  }
+
+  .toggle-checkbox {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+
+  .toggle-label {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    border-radius: 24px;
+    transition: background-color 0.3s ease;
+  }
+
+  .toggle-label:before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    border-radius: 50%;
+    transition: transform 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
+
+  .toggle-checkbox:checked + .toggle-label {
+    background-color: #3b82f6;
+  }
+
+  .toggle-checkbox:checked + .toggle-label:before {
+    transform: translateX(16px);
+  }
+
+  .toggle-checkbox:focus + .toggle-label {
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
+  }
+  
+  /* TOAST ANIMATIONS */
+  .toast {
+    animation: slideIn 0.3s ease-out forwards, fadeOut 0.5s 2.5s ease-out forwards;
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  
+  @keyframes slideIn {
+    0% { transform: translateY(100%); opacity: 0; }
+    100% { transform: translateY(0); opacity: 1; }
+  }
+  
+  @keyframes fadeOut {
+    0% { opacity: 1; }
+    100% { opacity: 0; visibility: hidden; }
+  }
+  
+  /* TAB TRANSITIONS */
+  .tab-transition {
+    transition: all 0.2s ease-in-out;
+  }
+</style>
+</head>
+
+<body class="bg-gray-50 min-h-screen font-sans text-gray-900">
+<!-- SIDEBAR TOGGLE BUTTON -->
+<button id="sidebar-toggle" aria-label="Toggle Sidebar" class="sidebar-toggle">
+  <img src="{{ url_for('static', filename='favicon_.png') }}" alt="KSB Logo" class="w-6 h-6">
+</button>
+
+<!-- SIDEBAR OVERLAY -->
+<div id="sidebar-overlay" class="fixed inset-0 bg-black bg-opacity-30 z-30 hidden"></div>
+
+<!-- SIDEBAR -->
+<div id="sidebar" class="sidebar-transition">
+  <div class="sidebar-header">
+    <div class="sidebar-logo">
+      <img src="{{ url_for('static', filename='favicon_.png') }}" alt="KSB Logo" class="w-6 h-6">
+      <span class="text-xl font-bold">ISMS</span>
+    </div>
+    <button id="sidebar-close" aria-label="Close Sidebar" class="p-1 rounded-full hover:bg-gray-100">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="15 18 9 12 15 6"></polyline>
+      </svg>
+    </button>
+  </div>
+
+  <div class="sidebar-content">
+    <nav>
+      <ul class="space-y-1">
+        <li>
+          <a href="/" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="7" height="7"></rect>
+              <rect x="14" y="3" width="7" height="7"></rect>
+              <rect x="14" y="14" width="7" height="7"></rect>
+              <rect x="3" y="14" width="7" height="7"></rect>
+            </svg>
+            <span>Dashboard</span>
+          </a>
+        </li>
+        <li>
+          <a href="/settings" class="nav-item active">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+            </svg>
+            <span>Settings</span>
+          </a>
+        </li>
+      </ul>
+    </nav>
+  </div>
+
+  <div class="sidebar-footer">
+    <div class="nav-item">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+        <circle cx="12" cy="7" r="4"></circle>
+      </svg>
+      <span>User Profile</span>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST NOTIFICATION CONTAINER -->
+<div id="toast-container" class="fixed bottom-4 right-4 z-50"></div>
+
+<!-- MAIN CONTENT -->
+<div class="w-full min-h-screen pt-16 pb-8 px-4 sm:px-6 md:px-8 lg:px-12">
+  <div class="max-w-4xl mx-auto">
+    <!-- HEADER SECTION -->
+    <div class="bg-white rounded-xl shadow-md p-6 md:p-8 mb-8">
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <h1 class="text-2xl font-bold text-gray-800 mb-2">System Settings</h1>
+          <p class="text-gray-600">Configure device channels and connection parameters</p>
+        </div>
+        <img src="{{ url_for('static', filename='LogoKSB.png') }}" alt="KSB Logo" class="h-10 md:h-12">
+      </div>
+    </div>
+
+    <!-- TIME RANGE CONFIGURATION -->
+    <div class="bg-white rounded-xl shadow-md p-6 mb-8">
+      <div class="mb-6">
+        <div class="flex items-center gap-3 mb-2">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-600">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polyline points="12 6 12 12 16 14"></polyline>
+          </svg>
+          <h2 class="text-xl font-semibold text-gray-800">Data Collection Interval</h2>
+        </div>
+        <p class="text-sm text-gray-600 ml-9">Configure how frequently the system collects data from sensors.</p>
+      </div>
+      
+      <form id="form-timerange" class="space-y-6">
+        <div class="bg-blue-50 p-4 rounded-lg border border-blue-100">
+          <label for="time_interval" class="block text-sm font-medium text-gray-700 mb-1">Collection Interval (seconds)</label>
+          <div class="relative">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+              </svg>
+            </div>
+            <input type="number" id="time_interval" name="time_interval" min="1" max="3600" step="1" placeholder="5" value="5" class="form-field w-full pl-10 pr-3 py-3 border border-gray-300 rounded-md shadow-sm text-lg">
+          </div>
+          <p class="mt-1 text-xs text-gray-500">Enter the interval in seconds (1-3600). Current: <span id="current-interval">5</span> seconds</p>
+          
+          
+          <div class="mt-3 flex flex-wrap gap-2">
+            <button type="button" onclick="setTimeInterval(1)" class="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded text-sm">1s</button>
+            <button type="button" onclick="setTimeInterval(5)" class="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded text-sm">5s</button>
+            <button type="button" onclick="setTimeInterval(10)" class="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded text-sm">10s</button>
+            <button type="button" onclick="setTimeInterval(30)" class="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded text-sm">30s</button>
+            <button type="button" onclick="setTimeInterval(60)" class="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded text-sm">1m</button>
+            <button type="button" onclick="setTimeInterval(300)" class="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded text-sm">5m</button>
+          </div>
+        </div>
+        
+        <div class="pt-4">
+          <button type="submit" class="px-5 py-2.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors flex items-center gap-2 shadow-sm">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+              <polyline points="17 21 17 13 7 13 7 21"></polyline>
+              <polyline points="7 3 7 8 15 8"></polyline>
+            </svg>
+            Save Time Interval
+          </button>
+        </div>
+      </form>
+      <script>
+document.addEventListener("DOMContentLoaded", () => {
+  const input = document.getElementById("time_interval")
+  const current = document.getElementById("current-interval")
+  const form = document.getElementById("form-timerange")
+
+  // Load nilai awal dari server
+  fetch("/get-interval")
+    .then(res => res.json())
+    .then(data => {
+      if (data.secTimeInterval) {
+        input.value = data.secTimeInterval
+        current.textContent = data.secTimeInterval
+      }
+    })
+    .catch(err => {
+      console.error("Gagal ambil interval awal:", err)
+    })
+
+  // Preset tombol cepat
+  window.setTimeInterval = function (val) {
+    input.value = val
+    current.textContent = val
+  }
+
+  // Submit form handler
+  form.addEventListener("submit", async (e) => {
+      e.preventDefault()
+      const val = parseInt(input.value)
+
+      if (val >= 1 && val <= 3600) {
+          try {
+              const res = await fetch("/set-interval", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ interval: val }),
+              })
+
+              if (res.ok) {
+                  const data = await res.json()
+                  current.textContent = data.secTimeInterval
+                  
+                  // Store in localStorage for cross-tab communication
+                  localStorage.setItem('serverInterval', (data.secTimeInterval * 1000).toString())
+                  
+                  // Notify other windows/tabs about the interval change
+                  if (typeof BroadcastChannel !== 'undefined') {
+                      const channel = new BroadcastChannel('interval-sync')
+                      channel.postMessage({ 
+                          type: 'interval-changed', 
+                          interval: data.secTimeInterval * 1000 
+                      })
+                  }
+                  
+                  // Dispatch custom event for same-page components
+                  window.dispatchEvent(new CustomEvent('intervalChanged', {
+                      detail: { interval: data.secTimeInterval * 1000 }
+                  }))
+                  
+                  alert("Interval berhasil disimpan: " + data.secTimeInterval + " detik")
+              } else {
+                  const err = await res.json()
+                  alert("Gagal menyimpan: " + (err.message || "Terjadi kesalahan"))
+              }
+          } catch (err) {
+              alert("Gagal terhubung ke server.")
+              console.error(err)
+          }
+      } else {
+          alert("Interval harus antara 1 - 3600 detik.")
+      }
+  })
+
+  // Listen for interval changes from other tabs
+  if (typeof BroadcastChannel !== 'undefined') {
+      const channel = new BroadcastChannel('interval-sync')
+      channel.onmessage = (event) => {
+          if (event.data.type === 'interval-changed') {
+              const newIntervalSeconds = event.data.interval / 1000
+              input.value = newIntervalSeconds
+              current.textContent = newIntervalSeconds
+              console.log(`Interval updated from other tab: ${newIntervalSeconds}s`)
+          }
+      }
+  }
+})
+</script>
+
+    </div> 
+
+    <!-- DEVICE TABS -->
+    <div class="mb-8">
+      <div class="inline-flex rounded-md shadow-sm" role="tablist">
+        <button id="tab-sensors" type="button" class="tab-button px-6 py-3 text-sm font-medium rounded-l-lg bg-blue-600 text-white hover:bg-blue-700 focus:z-10 focus:outline-none flex items-center gap-2" role="tab" aria-selected="true" aria-controls="panel-sensors">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="4" y1="21" x2="4" y2="14"></line>
+            <line x1="4" y1="10" x2="4" y2="3"></line>
+            <line x1="12" y1="21" x2="12" y2="12"></line>
+            <line x1="12" y1="8" x2="12" y2="3"></line>
+            <line x1="20" y1="21" x2="20" y2="16"></line>
+            <line x1="20" y1="12" x2="20" y2="3"></line>
+            <line x1="1" y1="14" x2="7" y2="14"></line>
+            <line x1="9" y1="8" x2="15" y2="8"></line>
+            <line x1="17" y1="16" x2="23" y2="16"></line>
+          </svg>
+          Sensors
+        </button>
+        <button id="tab-engine" type="button" class="tab-button px-6 py-3 text-sm font-medium bg-gray-100 text-gray-700 hover:bg-blue-700 hover:text-white focus:z-10 focus:outline-none flex items-center gap-2" role="tab" aria-selected="false" aria-controls="panel-engine">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+          </svg>
+          Engine
+        </button>
+        <button id="tab-powermeter" type="button" class="tab-button px-6 py-3 text-sm font-medium rounded-r-lg bg-gray-100 text-gray-700 hover:bg-blue-700 hover:text-white focus:z-10 focus:outline-none flex items-center gap-2" role="tab" aria-selected="false" aria-controls="panel-powermeter">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+          </svg>
+          Powermeter
+        </button>
+      </div>
+    </div>
+
+    <!-- SENSORS PANEL -->
+    <div id="panel-sensors" class="tab-panel" role="tabpanel">
+      <div class="bg-white rounded-xl shadow-md p-6">
+        <div class="mb-6">
+          <div class="flex items-center gap-3 mb-2">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-600">
+              <line x1="4" y1="21" x2="4" y2="14"></line>
+              <line x1="4" y1="10" x2="4" y2="3"></line>
+              <line x1="12" y1="21" x2="12" y2="12"></line>
+              <line x1="12" y1="8" x2="12" y2="3"></line>
+              <line x1="20" y1="21" x2="20" y2="16"></line>
+              <line x1="20" y1="12" x2="20" y2="3"></line>
+              <line x1="1" y1="14" x2="7" y2="14"></line>
+              <line x1="9" y1="8" x2="15" y2="8"></line>
+              <line x1="17" y1="16" x2="23" y2="16"></line>
+            </svg>
+            <h2 class="text-xl font-semibold text-gray-800">Sensor Configuration</h2>
+          </div>
+        </div>
+        
+        <form id="form-sensors" method="post" action="/save-sensors" class="space-y-6">
+          <div class="space-y-4">
+            <!-- Generate sensor cards dynamically -->
+            {% for i in range(1, 8) %}
+            <div class="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+              <div class="flex items-center justify-between mb-3">
+                <h3 class="text-md font-medium text-gray-800">Sensor {{ i }}</h3>
+                <div class="flex items-center">
+                  <div class="toggle-switch mr-2">
+                    <input type="checkbox" name="sensor{{ i }}_enabled" id="sensor{{ i }}_enabled" class="toggle-checkbox" 
+                           {% if sensors.get('sensor' + i|string) and sensors['sensor' + i|string].enabled %}checked{% endif %}>
+                    <label for="sensor{{ i }}_enabled" class="toggle-label"></label>
+                  </div>
+                  <span class="text-xs text-gray-500">Enabled</span>
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="sensor{{ i }}_name" class="block text-sm font-medium text-gray-700 mb-1">Sensor Name</label>
+                <input type="text" id="sensor{{ i }}_name" name="sensor{{ i }}_name" placeholder="e.g. Temperature" 
+                       value="{{ sensors.get('sensor' + i|string, {}).get('name', '') }}" 
+                       class="form-field w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm">
+              </div>
+              <!-- Calibration settings - always visible now -->
+              <div class="calibration-settings mt-3">
+                <div class="grid grid-cols-2 gap-3">
+                  <div class="form-group">
+                    <label for="sensor{{ i }}_min" class="block text-xs font-medium text-gray-600 mb-1">Min Value</label>
+                    <input type="number" step="0.01" id="sensor{{ i }}_min" name="sensor{{ i }}_min" placeholder="0.0" 
+                           value="{{ sensors.get('sensor' + i|string, {}).get('min', 0) }}" 
+                           class="form-field w-full px-2 py-1 text-sm border border-gray-300 rounded-md shadow-sm">
+                  </div>
+                  <div class="form-group">
+                    <label for="sensor{{ i }}_max" class="block text-xs font-medium text-gray-600 mb-1">Max Value</label>
+                    <input type="number" step="0.01" id="sensor{{ i }}_max" name="sensor{{ i }}_max" placeholder="100.0" 
+                           value="{{ sensors.get('sensor' + i|string, {}).get('max', 100) }}" 
+                           class="form-field w-full px-2 py-1 text-sm border border-gray-300 rounded-md shadow-sm">
+                  </div>
+                </div>
+                <div class="form-group mt-2">
+                  <label for="sensor{{ i }}_unit" class="block text-xs font-medium text-gray-600 mb-1">Unit</label>
+                  <input type="text" id="sensor{{ i }}_unit" name="sensor{{ i }}_unit" placeholder="e.g. bar, °C, Hz" 
+                         value="{{ sensors.get('sensor' + i|string, {}).get('unit', '') }}" 
+                         class="form-field w-full px-2 py-1 text-sm border border-gray-300 rounded-md shadow-sm">
+                </div>
+                <div class="text-xs text-gray-500 mt-2 p-2 bg-blue-50 rounded">
+                  <strong>Calibration:</strong> Sensor input (0-100) will be mapped to your min-max range.
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+          
+          <div class="pt-4">
+            <button type="submit" class="px-5 py-2.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors flex items-center gap-2 shadow-sm">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                <polyline points="7 3 7 8 15 8"></polyline>
+              </svg>
+              Save Sensor Settings
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- ENGINE PANEL -->
+    <div id="panel-engine" class="tab-panel hidden" role="tabpanel">
+      <div class="bg-white rounded-xl shadow-md p-6">
+        <div class="mb-6">
+          <div class="flex items-center gap-3 mb-2">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-600">
+              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+            </svg>
+            <h2 class="text-xl font-semibold text-gray-800">Engine Configuration</h2>
+          </div>
+          <p class="text-sm text-gray-600 ml-9">Configure the Modbus registers for your engine device parameters.</p>
+        </div>
+
+        <form id="form-engine" method="post" action="/save-engine" class="space-y-6">
+          <!-- IP Address -->
+          <div class="bg-blue-50 p-4 rounded-lg border border-blue-100">
+            <label for="e_ip" class="block text-sm font-medium text-gray-700 mb-1">Engine IP Address</label>
+            <div class="relative">
+              <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400">
+                  <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
+                  <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
+                  <line x1="6" y1="6" x2="6.01" y2="6"></line>
+                  <line x1="6" y1="18" x2="6.01" y2="18"></line>
+                </svg>
+              </div>
+              <input type="text" id="e_ip" name="e_ip" placeholder="192.168.10.xxx" value="{{ engine.get('e_ip', '') }}" class="form-field w-full pl-10 pr-3 py-3 border border-gray-300 rounded-md shadow-sm text-lg">
+            </div>
+            <p class="mt-1 text-xs text-gray-500">Enter the IP address of your engine device</p>
+          </div>
+
+          <!-- Register parameters -->
+          <div class="grid gap-6 md:grid-cols-2">
+            <div class="form-group">
+              <label for="e_speed" class="block text-sm font-medium text-gray-700 mb-1">Engine Speed Register</label>
+              <input type="number" id="e_speed" name="e_speed" placeholder="e.g. 40001" 
+                     value="{{ engine.get('e_speed', '') }}" 
+                     class="form-field w-full px-3 py-2 border border-gray-300 rounded-md">
+            </div>
+
+            <div class="form-group">
+              <label for="e_load" class="block text-sm font-medium text-gray-700 mb-1">Engine Load Register</label>
+              <input type="number" id="e_load" name="e_load" placeholder="e.g. 40002" 
+                     value="{{ engine.get('e_load', '') }}" 
+                     class="form-field w-full px-3 py-2 border border-gray-300 rounded-md">
+            </div>
+
+            <div class="form-group">
+              <label for="e_fuelrate" class="block text-sm font-medium text-gray-700 mb-1">Fuel Rate Register</label>
+              <input type="number" id="e_fuelrate" name="e_fuelrate" placeholder="e.g. 40003" 
+                     value="{{ engine.get('e_fuelrate', '') }}" 
+                     class="form-field w-full px-3 py-2 border border-gray-300 rounded-md">
+            </div>
+
+            <div class="form-group">
+              <label for="e_runhour" class="block text-sm font-medium text-gray-700 mb-1">Run Hours Register</label>
+              <input type="number" id="e_runhour" name="e_runhour" placeholder="e.g. 40004" 
+                     value="{{ engine.get('e_runhour', '') }}" 
+                     class="form-field w-full px-3 py-2 border border-gray-300 rounded-md">
+            </div>
+
+            <div class="form-group md:col-span-2">
+              <label for="e_oilpressure" class="block text-sm font-medium text-gray-700 mb-1">Oil Pressure Register</label>
+              <input type="number" id="e_oilpressure" name="e_oilpressure" placeholder="e.g. 40005" 
+                     value="{{ engine.get('e_oilpressure', '') }}" 
+                     class="form-field w-full px-3 py-2 border border-gray-300 rounded-md">
+            </div>
+          </div>
+
+          <div class="pt-4">
+            <button type="submit" class="px-5 py-2.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                <polyline points="7 3 7 8 15 8"></polyline>
+              </svg>
+              Save Engine Settings
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- POWERMETER PANEL -->
+    <div id="panel-powermeter" class="tab-panel hidden" role="tabpanel">
+      <div class="bg-white rounded-xl shadow-md p-6">
+        <div class="mb-6">
+          <div class="flex items-center gap-3 mb-2">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-600">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+            </svg>
+            <h2 class="text-xl font-semibold text-gray-800">Powermeter Configuration</h2>
+          </div>
+          <p class="text-sm text-gray-600 ml-9">Configure the Modbus registers for your powermeter device parameters.</p>
+        </div>
+        
+        <form id="form-powermeter" method="post" action="/save-powermeter" class="space-y-6">
+          <!-- IP Address -->
+          <div class="bg-blue-50 p-4 rounded-lg border border-blue-100">
+            <label for="pm_ip" class="block text-sm font-medium text-gray-700 mb-1">Powermeter IP Address</label>
+            <div class="relative">
+              <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400">
+                  <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
+                  <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
+                  <line x1="6" y1="6" x2="6.01" y2="6"></line>
+                  <line x1="6" y1="18" x2="6.01" y2="18"></line>
+                </svg>
+              </div>
+              <input type="text" id="pm_ip" name="pm_ip" placeholder="192.168.10.xxx" pattern="^(\d{1,3}\.){3}\d{1,3}$" inputmode="decimal" 
+                     value="{{ powermeter.get('pm_ip', '') }}" 
+                     class="form-field w-full pl-10 pr-3 py-3 border border-gray-300 rounded-md shadow-sm text-lg" required>
+            </div>
+            <p class="mt-1 text-xs text-gray-500">Enter the IP address of your powermeter device</p>
+          </div>
+
+          <!-- Register parameters -->
+          <div class="grid gap-6 md:grid-cols-2">
+            <div class="form-group">
+              <label for="pm_current" class="block text-sm font-medium text-gray-700 mb-1">Current Register</label>
+              <div class="relative">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400">
+                    <path d="M18 20V10"></path>
+                    <path d="M12 20V4"></path>
+                    <path d="M6 20v-6"></path>
+                  </svg>
+                </div>
+                <input type="number" id="pm_current" name="pm_current" placeholder="e.g. 40001" 
+                       value="{{ powermeter.get('pm_current', '') }}" 
+                       class="form-field w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm">
+              </div>
+              <p class="mt-1 text-xs text-gray-500">Modbus register for current measurement</p>
+            </div>
+            
+            <div class="form-group">
+              <label for="pm_voltage" class="block text-sm font-medium text-gray-700 mb-1">Voltage Register</label>
+              <div class="relative">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400">
+                    <path d="M18 20V10"></path>
+                    <path d="M12 20V4"></path>
+                    <path d="M6 20v-6"></path>
+                  </svg>
+                </div>
+                <input type="number" id="pm_voltage" name="pm_voltage" placeholder="e.g. 40002" 
+                       value="{{ powermeter.get('pm_voltage', '') }}" 
+                       class="form-field w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm">
+              </div>
+              <p class="mt-1 text-xs text-gray-500">Modbus register for voltage measurement</p>
+            </div>
+            
+            <div class="form-group">
+              <label for="pm_r" class="block text-sm font-medium text-gray-700 mb-1">Active Register</label>
+              <div class="relative">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 6 12 12 16 14"></polyline>
+                  </svg>
+                </div>
+                <input type="number" id="pm_r" name="pm_r" placeholder="e.g. 40003" 
+                       value="{{ powermeter.get('pm_r', '') }}" 
+                       class="form-field w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm">
+              </div>
+              <p class="mt-1 text-xs text-gray-500">Modbus register for Active parameter</p>
+            </div>
+            
+            <div class="form-group">
+              <label for="pm_q" class="block text-sm font-medium text-gray-700 mb-1">Reactive Register</label>
+              <div class="relative">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 6 12 12 16 14"></polyline>
+                  </svg>
+                </div>
+                <input type="number" id="pm_q" name="pm_q" placeholder="e.g. 40004" 
+                       value="{{ powermeter.get('pm_q', '') }}" 
+                       class="form-field w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm">
+              </div>
+              <p class="mt-1 text-xs text-gray-500">Modbus register for Reactive parameter</p>
+            </div>
+            
+            <div class="form-group md:col-span-2">
+              <label for="pm_s" class="block text-sm font-medium text-gray-700 mb-1">Apparent Register</label>
+              <div class="relative">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 6 12 12 16 14"></polyline>
+                  </svg>
+                </div>
+                <input type="number" id="pm_s" name="pm_s" placeholder="e.g. 40005" 
+                       value="{{ powermeter.get('pm_s', '') }}" 
+                       class="form-field w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm">
+              </div>
+              <p class="mt-1 text-xs text-gray-500">Modbus register for Apparent parameter</p>
+            </div>
+          </div>
+          
+          <div class="pt-4">
+            <button type="submit" class="px-5 py-2.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors flex items-center gap-2 shadow-sm">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                <polyline points="7 3 7 8 15 8"></polyline>
+              </svg>
+              Save Powermeter Settings
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- FOOTER -->
+    <div class="mt-8 text-center text-sm text-gray-500">
+      <p class="mt-2">© 2025 KSB Integrated Sensor Monitoring System. All rights reserved.</p>
+      <p class="mt-1">Version 1.0.0</p>
+    </div>
+  </div>
+</div>
+
+<script>
+  // SIDEBAR FUNCTIONALITY
+  (function initSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const sidebarToggle = document.getElementById('sidebar-toggle');
+    const sidebarClose = document.getElementById('sidebar-close');
+    const sidebarOverlay = document.getElementById('sidebar-overlay');
+    
+    const sidebarState = localStorage.getItem('sidebarState');
+    
+    function openSidebar() {
+      sidebar.classList.add('active');
+      sidebarToggle.classList.add('active');
+      sidebarOverlay.classList.remove('hidden');
+      localStorage.setItem('sidebarState', 'open');
+    }
+    
+    function closeSidebar() {
+      sidebar.classList.remove('active');
+      sidebarToggle.classList.remove('active');
+      sidebarOverlay.classList.add('hidden');
+      localStorage.setItem('sidebarState', 'closed');
+    }
+    
+    if (sidebarState === 'open') {
+      openSidebar();
+    }
+    
+    sidebarToggle.addEventListener('click', function() {
+      sidebar.classList.contains('active') ? closeSidebar() : openSidebar();
+    });
+    
+    sidebarClose.addEventListener('click', closeSidebar);
+    sidebarOverlay.addEventListener('click', closeSidebar);
+    
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' && sidebar.classList.contains('active')) {
+        closeSidebar();
+      }
+    });
+    
+    function handleResponsiveLayout() {
+      if (window.innerWidth < 768 && sidebar.classList.contains('active')) {
+        closeSidebar();
+      }
+    }
+    
+    window.addEventListener('resize', handleResponsiveLayout);
+    
+    // Highlight current page
+    const currentPath = window.location.pathname;
+    const navItems = document.querySelectorAll('.nav-item');
+    
+    navItems.forEach(item => {
+      const href = item.getAttribute('href');
+      if (href === currentPath) {
+        item.classList.add('active');
+      } else {
+        item.classList.remove('active');
+      }
+    });
+  })();
+
+  // TAB FUNCTIONALITY
+  (function initTabs() {
+    const tabButtons = document.querySelectorAll('.tab-button');
+    const tabPanels = document.querySelectorAll('.tab-panel');
+
+    tabButtons.forEach(button => {
+      button.addEventListener('click', () => {
+        // Deactivate all tabs
+        tabButtons.forEach(btn => {
+          btn.classList.remove('bg-blue-600', 'text-white');
+          btn.classList.add('bg-gray-100', 'text-gray-700');
+          btn.setAttribute('aria-selected', 'false');
+        });
+
+        // Hide all panels
+        tabPanels.forEach(panel => {
+          panel.classList.add('hidden');
+        });
+
+        // Activate clicked tab
+        button.classList.remove('bg-gray-100', 'text-gray-700');
+        button.classList.add('bg-blue-600', 'text-white');
+        button.setAttribute('aria-selected', 'true');
+
+        // Show corresponding panel
+        const panelId = button.getAttribute('aria-controls');
+        document.getElementById(panelId).classList.remove('hidden');
+      });
+    });
+
+    // Activate first tab by default
+    document.addEventListener('DOMContentLoaded', () => {
+      const defaultTab = document.querySelector('[aria-controls="panel-sensors"]');
+      if (defaultTab) defaultTab.click();
+    });
+  })();
+
+  // FORM SUBMISSION HANDLING
+  (function initForms() {
+    function showToast(title, message) {
+      const toastContainer = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.className = 'toast bg-white border border-gray-200 rounded-lg shadow-lg p-4 mb-3 max-w-md flex items-start';
+      toast.innerHTML = `
+        <div class="flex-shrink-0 text-green-500 mr-3">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+          </svg>
+        </div>
+        <div>
+          <h4 class="font-medium text-gray-900">${title}</h4>
+          <p class="text-sm text-gray-600">${message}</p>
+        </div>
+        <button class="ml-auto text-gray-400 hover:text-gray-500" onclick="this.parentElement.remove()">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      `;
+
+      toastContainer.appendChild(toast);
+
+      setTimeout(() => {
+        if (toast.parentElement) {
+          toast.remove();
+        }
+      }, 3000);
+    }
+
+    // Handle sensor form submission with calibration data
+    const sensorForm = document.getElementById('form-sensors');
+    if (sensorForm) {
+      sensorForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        // Use FormData to properly handle the form submission
+        const formData = new FormData(this);
+        
+        fetch(this.action, {
+          method: 'POST',
+          body: formData
+        })
+        .then(res => res.json())
+        .then(res => {
+          console.log(res);
+          showToast('Sensor settings saved', 'Your sensor configuration with calibration has been updated successfully.');
+        })
+        .catch(err => {
+          console.error('Failed to save sensor settings:', err);
+          showToast('Error', 'Failed to save sensor settings. Please try again.');
+        });
+      });
+    }
+
+    // Handle engine and powermeter forms
+    const forms = ['form-engine', 'form-powermeter'];
+    const formTitles = {
+      'form-engine': 'Engine settings saved', 
+      'form-powermeter': 'Powermeter settings saved'
+    };
+
+    forms.forEach(formId => {
+      const form = document.getElementById(formId);
+      if (form) {
+        form.addEventListener('submit', function(e) {
+          e.preventDefault();
+          
+          const formData = new FormData(this);
+
+          fetch(this.action, {
+            method: 'POST',
+            body: formData
+          })
+          .then(res => res.json())
+          .then(res => {
+            console.log(res);
+            showToast(formTitles[formId], 'Your configuration has been updated successfully.');
+          })
+          .catch(err => {
+            console.error(`Failed to save ${formId.replace('form-', '')} settings:`, err);
+          });
+        });
+      }
+    });
+  })();
+
+  // Handle sensor enable/disable toggles - calibration settings always visible now
+  document.addEventListener('DOMContentLoaded', function() {
+    for (let i = 1; i <= 7; i++) {
+      const toggle = document.getElementById(`sensor${i}_enabled`);
+      const card = toggle.closest('.border');
+      
+      // Add visual feedback when sensors are enabled/disabled
+      function updateToggleState() {
+        if (toggle.checked) {
+          card.classList.remove('opacity-50');
+          card.classList.add('border-blue-200');
+        } else {
+          card.classList.add('opacity-50');
+          card.classList.remove('border-blue-200');
+        }
+      }
+      
+      // Set initial state
+      updateToggleState();
+      
+      // Add event listener for toggle changes
+      toggle.addEventListener('change', updateToggleState);
+    }
+  });
+</script>
+</body>
+</html>

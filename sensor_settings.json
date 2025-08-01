@@ -1,0 +1,1 @@
+{"sensor1": {"name": "Discharge Pressure", "enabled": true}, "sensor2": {"name": "Suction Pressure", "enabled": true}, "sensor3": {"name": "Vibration", "enabled": true}, "sensor4": {"name": "Sensor 4", "enabled": false}, "sensor5": {"name": " Sensor 5", "enabled": false}, "sensor6": {"name": " Sensor 6", "enabled": false}, "sensor7": {"name": " Sensor 7", "enabled": false}}
