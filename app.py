@@ -14,6 +14,10 @@ from pymodbus.constants import Endian
 import json
 import threading
 import pandas as pd
+from dotenv import load_dotenv
+
+load_dotenv()
+
 
 app = Flask(__name__)
 

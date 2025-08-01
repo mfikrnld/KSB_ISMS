@@ -1,0 +1,5 @@
+Flask
+pymodbus
+pandas
+python-dateutil
+platformdirs
