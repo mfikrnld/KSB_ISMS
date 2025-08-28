@@ -895,6 +895,7 @@ function simpleMovingAverage(data, windowSize) {
     scales: {
       x: {
         display: false,
+        reverse: true, 
       },
       y: {
         display: true,
