@@ -8,7 +8,7 @@ import io
 import shutil
 import os
 import platform
-from pymodbus.client import ModbusTcpClient
+from pymodbus.client.sync import ModbusTcpClient
 from pymodbus.payload import BinaryPayloadDecoder
 from pymodbus.constants import Endian
 import json
