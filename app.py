@@ -118,7 +118,7 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 
 # Konfigurasi Modbus
-MODBUS_IP = "10.23.104.92"
+MODBUS_IP = "10.23.104.177" # Ganti dengan IP Modbus server
 MODBUS_PORT = 502
 MODBUS_REGISTER = 50  # Register 40051 (0-based index)
 UNIT_ID = 1  # ID Slave perangkat Modbus
@@ -509,7 +509,7 @@ def read_basic_sensor_data():
                         connection_successful = True
                         for i, response in enumerate(responses):
                             try:
-                                decoder = BinaryPayloadDecoder.fromRegisters(response.registers, byteorder=Endian.BIG, wordorder=Endian.BIG)
+                                decoder = BinaryPayloadDecoder.fromRegisters(response.registers, byteorder=Endian.Big, wordorder=Endian.Big)
                                 value = round(decoder.decode_32bit_float(), 4)
                                 raw_values[i] = value
                             except Exception as e:
@@ -592,7 +592,7 @@ def read_basic_sensor_data():
 def decode_float(response):
     try:
         decoder = BinaryPayloadDecoder.fromRegisters(
-            response.registers, byteorder=Endian.BIG, wordorder=Endian.BIG
+            response.registers, byteorder=Endian.Big, wordorder=Endian.Big
         )
         return round(decoder.decode_32bit_float(), 4)
     except Exception as e:
@@ -1324,7 +1324,7 @@ def read_device_data(ip, registers, unit=1):
                 else:
                     try:
                         decoder = BinaryPayloadDecoder.fromRegisters(
-                            resp.registers, byteorder=Endian.BIG, wordorder=Endian.BIG
+                            resp.registers, byteorder=Endian.Big, wordorder=Endian.Big
                         )
                         value = decoder.decode_32bit_float()
                         result.append(round(value, 4))

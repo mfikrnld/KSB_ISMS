@@ -1,5 +1,5 @@
 Flask
-pymodbus
+pymodbus==2.5.3
 pandas
 python-dateutil
 platformdirs
