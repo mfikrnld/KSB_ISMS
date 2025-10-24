@@ -1,5 +1,14 @@
-Flask
+# Core Framework
+Flask==3.0.0
+Werkzeug==3.0.1
+
+# Modbus Communication
 pymodbus==2.5.3
-pandas
-python-dateutil
-platformdirs
+
+# Data Processing
+pandas==2.1.4
+numpy==1.24.3
+python-dateutil==2.8.2
+
+# Utilities
+platformdirs==4.0.0

@@ -1,0 +1,30 @@
+{
+  "name": "ksb-isms-frontend",
+  "version": "1.0.0",
+  "description": "Frontend assets for KSB ISMS Flask application",
+  "private": true,
+  "scripts": {
+    "dev": "echo 'This is a Flask backend project. Use: python app.py'",
+    "build": "echo 'No build needed for Flask app'"
+  },
+  "dependencies": {
+    "html2canvas": "1.4.1",
+    "jspdf": "3.0.3",
+    "next": "16.0.0",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "class-variance-authority": "0.7.1",
+    "clsx": "2.1.1",
+    "lucide-react": "0.546.0",
+    "tailwind-merge": "3.3.1",
+    "tailwindcss-animate": "1.0.7"
+  },
+  "devDependencies": {
+    "@types/react": "19.2.2",
+    "@types/react-dom": "19.2.2",
+    "@types/node": "24.9.1",
+    "tailwindcss": "4.1.16",
+    "typescript": "5.9.3",
+    "postcss": "8.5.6"
+  }
+}

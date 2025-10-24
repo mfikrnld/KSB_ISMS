@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, Response
+from flask import Flask, render_template, request, jsonify, Response, session, redirect, url_for, flash
 import sqlite3
 import threading
 import time
@@ -8,14 +8,19 @@ import io
 import shutil
 import os
 import platform
-from pymodbus.client.sync import ModbusTcpClient
 from pymodbus.payload import BinaryPayloadDecoder
+from pymodbus.client.sync import ModbusTcpClient
 from pymodbus.constants import Endian
 import json
 import threading
 import pandas as pd
+import numpy as np
+from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
+
+app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'change-me')  # set env var in production
+app.permanent_session_lifetime = timedelta(days=7)  # user stays logged in for 7 days
 
 # Detect operating system and set paths accordingly
 def get_system_paths():
@@ -118,10 +123,10 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 
 # Konfigurasi Modbus
-MODBUS_IP = "10.23.104.177" # Ganti dengan IP Modbus server
+MODBUS_IP = "10.23.107.228"
 MODBUS_PORT = 502
-MODBUS_REGISTER = 50  # Register 40051 (0-based index)
-UNIT_ID = 1  # ID Slave perangkat Modbus
+MODBUS_REGISTER = 50  
+UNIT_ID = 1 
 
 def save_interval_to_file(interval):
     try:
@@ -396,6 +401,29 @@ def create_table():
                         (sensor_number, sensor_name, enabled, min_value, max_value, unit) 
                         VALUES (?, ?, ?, ?, ?, ?)''', sensor_data)
         print("Added default sensor settings with calibration")
+
+    c.execute('''CREATE TABLE IF NOT EXISTS users (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    username TEXT UNIQUE,
+                    password_hash TEXT
+                )''')
+
+    # Add is_admin column if missing
+    c.execute("PRAGMA table_info(users)")
+    user_cols = [r[1] for r in c.fetchall()]
+    if "is_admin" not in user_cols:
+        c.execute("ALTER TABLE users ADD COLUMN is_admin INTEGER DEFAULT 0")
+
+    # Helper to ensure a user exists
+    def ensure_user(uname, pwd, is_admin=False):
+        c.execute("SELECT 1 FROM users WHERE username = ?", (uname,))
+        if not c.fetchone():
+            c.execute(
+                "INSERT INTO users (username, password_hash, is_admin) VALUES (?, ?, ?)",
+                (uname, generate_password_hash(pwd), 1 if is_admin else 0),
+            )
+
+    ensure_user("ksbengdev", "Milo@1015", True)
 
     conn.commit()
     conn.close()
@@ -887,7 +915,6 @@ def generate_csv(data):
         if unit:
             header += f" ({unit})"
         sensor_info[f"ch{sensor_number}"] = header
-    conn.close()
 
     # Siapkan header
     headers = ['ID', 'Date', 'Time']
@@ -1576,7 +1603,80 @@ def upload_csv():
 # Routes untuk halaman
 @app.route('/')
 def index():
+    # global require_login
+    # if not session.get("user_id"):
+    #     return redirect(url_for("login", next=request.path))
     return render_template('index.html')
+
+# already added at the top
+
+# already configured at the top
+
+# already done in create_table()
+
+def get_user_by_username(username: str):
+    try:
+        conn = sqlite3.connect(DATABASE)
+        c = conn.cursor()
+        c.execute("SELECT id, username, password_hash, COALESCE(is_admin,0) FROM users WHERE username = ?", (username,))
+        row = c.fetchone()
+        conn.close()
+        return row
+    except Exception as e:
+        print(f"[AUTH] get_user_by_username error: {e}")
+        return None
+
+@app.context_processor
+def inject_user():
+    return {
+        "current_user": session.get("username"),
+        "is_admin": bool(session.get("is_admin", 0)),
+    }
+
+@app.before_request
+def require_login():
+    path = request.path
+    exempt_exact = {"/login", "/favicon.ico"}
+    # allow static files
+    if path.startswith("/static/"):
+        return None
+    if path not in exempt_exact and not session.get("user_id"):
+        return redirect(url_for("login", next=path))
+    return None
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    try:
+        if request.method == 'POST':
+            username = request.form.get('username', '').strip()
+            password = request.form.get('password', '')
+            next_url = request.form.get('next') or url_for('index')
+
+            conn = sqlite3.connect(DATABASE)
+            c = conn.cursor()
+            c.execute("SELECT id, username, password_hash, COALESCE(is_admin,0) FROM users WHERE username = ?", (username,))
+            user = c.fetchone()
+            conn.close()
+
+            if user and check_password_hash(user[2], password):
+                session.clear()
+                session['user_id'] = user[0]
+                session['username'] = user[1]
+                session['is_admin'] = int(user[3])
+                session.permanent = True  # use app.permanent_session_lifetime
+                return redirect(next_url)
+
+            return render_template('login.html', error="Invalid username or password", next=next_url)
+
+        return render_template('login.html', next=request.args.get('next'))
+    except Exception as e:
+        print(f"[AUTH] login error: {e}")
+        return render_template('login.html', error="Unexpected error, please try again")
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('login'))
 
 
 @app.route('/settings')
@@ -1661,6 +1761,41 @@ def settings():
                              engine={},
                              powermeter={})
 
+@app.route('/profile')
+def profile():
+    return render_template('profile.html')
+
+@app.route('/users/new', methods=['GET', 'POST'])
+def users_new():
+    if not session.get("is_admin"):
+        # non-admins cannot access
+        return redirect(url_for('profile'))
+    error = None
+    created = None
+    if request.method == 'POST':
+        uname = request.form.get('username', '').strip()
+        pwd = request.form.get('password', '')
+        if not uname or not pwd:
+            error = "Username and password are required."
+        else:
+            try:
+                conn = sqlite3.connect(DATABASE)
+                c = conn.cursor()
+                c.execute("SELECT 1 FROM users WHERE username = ?", (uname,))
+                if c.fetchone():
+                    error = "Username already exists."
+                else:
+                    c.execute(
+                        "INSERT INTO users (username, password_hash, is_admin) VALUES (?, ?, ?)",
+                        (uname, generate_password_hash(pwd), 0),
+                    )
+                    conn.commit()
+                    created = uname
+                conn.close()
+            except Exception as e:
+                error = f"Failed to create user: {e}"
+    return render_template('users-new.html', error=error, created=created)
+
 # Initialize system state on startup
 running = get_system_state()
 
@@ -1682,5 +1817,99 @@ if __name__ == '__main__':
         advanced_thread = threading.Thread(target=read_advanced_data)
         advanced_thread.daemon = True
         advanced_thread.start()
+    
+    @app.route('/api/fft')
+    def api_fft():
+        try:
+            from numpy.fft import fft, ifft, rfft, rfftfreq, fftfreq
+            
+            source = (request.args.get('source') or '').lower()  # 'sensors' | 'engine' | 'powermeter'
+            channel = (request.args.get('channel') or '').lower()
+            n = int(request.args.get('n', 1024))
+            n = max(8, min(n, 16384))  # sanity bounds
+            detrend = (request.args.get('detrend', '0').lower() in ['1', 'true', 'yes'])
+
+            # Validate source and map to table/column
+            valid = False
+            table = None
+            column = None
+
+            if source == 'sensors':
+                # expect channel: ch1..ch7
+                if channel in [f'ch{i}' for i in range(1, 7 + 1)]:
+                    valid = True
+                    table = 'data'
+                    column = channel
+            elif source == 'engine':
+                # e_speed, e_load, e_fuelrate, e_runhour, e_oilpressure
+                engine_cols = ["e_speed", "e_load", "e_fuelrate", "e_runhour", "e_oilpressure"]
+                if channel in engine_cols:
+                    valid = True
+                    table = 'full_data'
+                    column = channel
+            elif source == 'powermeter':
+                # pm_current, pm_voltage, pm_r, pm_q, pm_s
+                pm_cols = ["pm_current", "pm_voltage", "pm_r", "pm_q", "pm_s"]
+                if channel in pm_cols:
+                    valid = True
+                    table = 'full_data'
+                    column = channel
+
+            if not valid:
+                return jsonify({"error": "Invalid source or channel"}), 400
+
+            # pull last N samples from appropriate table/column
+            with sqlite3.connect(DATABASE) as conn:
+                c = conn.cursor()
+                c.execute(f"SELECT {column} FROM {table} ORDER BY id DESC LIMIT ?", (n,))
+                rows = c.fetchall()
+
+            if not rows:
+                return jsonify({"error": "No data available"}), 404
+
+            # reverse to chronological order
+            y = np.array([float(r[0] or 0.0) for r in rows][::-1], dtype=float)
+
+            # If fewer than requested samples, use what's available
+            N = len(y)
+
+            if detrend and N > 1:
+                y = y - np.mean(y)
+
+            # Sampling interval (seconds) -> Fs in Hz
+            dt = float(get_current_interval()) if get_current_interval() > 0 else 1.0
+            fs = 1.0 / dt
+
+            # rfft computes the FFT of a real-valued signal and returns only positive frequencies
+            yf = rfft(y)
+            xf = rfftfreq(N, d=dt)
+
+            # For real FFT, we need to double the magnitude except for DC and Nyquist components
+            mag = np.abs(yf) * (2.0 / max(N, 1))
+            if N % 2 == 0 and len(mag) > 1:
+                # For even N, Nyquist component should not be doubled
+                mag[-1] = mag[-1] / 2.0
+            
+            phase = np.angle(yf)
+
+            return jsonify({
+                "source": source,
+                "channel": channel,
+                "n": N,
+                "fs": fs,
+                "dt": dt,
+                "frequencies": xf.tolist(),
+                "magnitude": mag.tolist(),
+                "phase": phase.tolist()
+            })
+        except Exception as e:
+            print(f"[FFT ERROR] {e}")
+            import traceback
+            traceback.print_exc()
+            return jsonify({"error": str(e)}), 500
+
+    @app.route('/fft')
+    def fft_page():
+        return render_template('fft.html')
     
     app.run(host='0.0.0.0', port=5000, debug=False)

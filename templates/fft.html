@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>FFT - KSB ISMS</title>
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon_.png') }}">
+
+  <!-- Tailwind CSS, FontAwesome, Inter font -->
+  <link href="{{ url_for('static', filename='css/tailwind.min.css') }}" rel="stylesheet">
+  <link href="{{ url_for('static', filename='css/all.min.css') }}" rel="stylesheet">
+  <link href="{{ url_for('static', filename='fonts/inter-font.css') }}" rel="stylesheet">
+
+  <!-- Chart.js and adapter -->
+  <script src="{{ url_for('static', filename='js/chart.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/chartjs-adapter-date-fns.bundle.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .nav-item { display:flex; align-items:center; gap:0.5rem; padding:0.75rem 1rem; border-radius:0.375rem; color:#4b5563; transition:all .2s; text-decoration:none; }
+    .nav-item:hover { background:#f3f4f6; }
+    .nav-item.active { background:#e0f2fe; color:#0284c7; font-weight:500; }
+    .sidebar-transition { transition: transform 0.3s ease-in-out, box-shadow 0.3s ease; }
+    #sidebar-overlay { transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out; }
+    .sidebar-toggle {
+      transition: all 0.3s ease-in-out;
+      position: fixed; top: 1rem; left: 1rem; z-index: 50;
+      width: 2.5rem; height: 2.5rem; display: flex; align-items: center; justify-content: center;
+      border-radius: 9999px; background-color: white;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+    .sidebar-toggle:hover { transform: scale(1.05); box-shadow: 0 0 15px rgba(14, 165, 233, 0.2); }
+    .sidebar-toggle.active { left: 13rem; }
+    #sidebar {
+      width: 16rem; height: 100vh; position: fixed; top: 0; left: 0;
+      background-color: white; box-shadow: 4px 0 10px rgba(0, 0, 0, 0.05); z-index: 40;
+      display: flex; flex-direction: column; transform: translateX(-100%);
+    }
+    #sidebar.active { transform: translateX(0); }
+    .sidebar-header { padding: 1rem; border-bottom: 1px solid #e5e7eb; display: flex; align-items: center; justify-content: space-between; }
+    .sidebar-logo { display: flex; align-items: center; gap: 0.5rem; }
+    .sidebar-content { flex: 1; overflow-y: auto; padding: 1rem; }
+    .sidebar-footer { padding: 1rem; border-top: 1px solid #e5e7eb; }
+    @media (max-width: 767px) {
+      #sidebar-toggle.active { left: 1rem; }
+    }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen text-gray-900 overflow-x-hidden">
+  <button id="sidebar-toggle" aria-label="Toggle Sidebar" class="sidebar-toggle">
+    <img src="{{ url_for('static', filename='favicon_.png') }}" alt="KSB Logo" class="w-6 h-6">
+  </button>
+  <div id="sidebar-overlay" class="fixed inset-0 bg-black bg-opacity-30 z-30 hidden"></div>
+
+  <div id="sidebar" class="sidebar-transition">
+    <div class="sidebar-header">
+      <div class="sidebar-logo">
+        <img src="{{ url_for('static', filename='favicon_.png') }}" alt="KSB Logo" class="w-6 h-6">
+        <span class="text-xl font-bold">ISMS</span>
+      </div>
+      <button id="sidebar-close" aria-label="Close Sidebar" class="p-1 rounded-full hover:bg-gray-100">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="15 18 9 12 15 6"></polyline>
+        </svg>
+      </button>
+    </div>
+    <div class="sidebar-content">
+      <nav>
+        <ul class="space-y-1">
+          <li>
+            <a href="/" class="nav-item">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="7" height="7"></rect>
+                <rect x="14" y="3" width="7" height="7"></rect>
+                <rect x="14" y="14" width="7" height="7"></rect>
+                <rect x="3" y="14" width="7" height="7"></rect>
+              </svg>
+              <span>Dashboard</span>
+            </a>
+          </li>
+          <li>
+            <a href="/settings" class="nav-item">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="3"></circle>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06-.06a2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+              </svg>
+              <span>Settings</span>
+            </a>
+          </li>
+          <li>
+            <a href="/fft" class="nav-item active">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="4 14 8 10 12 14 16 10 20 14"></polyline>
+              </svg>
+              <span>FFT</span>
+            </a>
+          </li>
+        </ul>
+      </nav>
+    </div>
+    <div class="sidebar-footer">
+      <a href="{{ url_for('profile') }}" class="nav-item">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+          <circle cx="12" cy="7" r="4"></circle>
+        </svg>
+        <span>User Profile{% if current_user %} ({{ current_user }}){% endif %}</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- FFT page with dynamic chart management -->
+  <main id="main-content" class="w-full min-h-screen pt-16 pb-8 px-4 sm:px-6 md:px-8 lg:px-12">
+    <div class="max-w-7xl mx-auto">
+      <!-- Header with controls -->
+      <header class="bg-white rounded-xl shadow p-6 mb-6">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+          <div class="flex items-center gap-4">
+            <img src="{{ url_for('static', filename='LogoKSB.png') }}" class="h-10" alt="KSB"/>
+            <div>
+              <h1 class="text-2xl font-bold">Frequency Analysis (FFT)</h1>
+              <p class="text-sm text-gray-500">Real-time spectral analysis - <span id="chart-count">1</span>/5 charts</p>
+            </div>
+          </div>
+          <div class="flex gap-2">
+            <button id="add-chart-btn" class="px-4 py-2 rounded-lg bg-green-600 text-white text-sm font-medium hover:bg-green-700 transition">
+              <i class="fas fa-plus mr-2"></i>Add Chart
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <!-- Global Configuration Panel for sampling rate, samples, and frequency range -->
+      <div class="bg-white rounded-xl shadow p-6 mb-6">
+        <h2 class="text-lg font-semibold mb-4">Global Configuration</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Sampling Rate (Hz)</label>
+            <input type="number" id="globalSamplingRate" value="1" min="0.1" step="0.1" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Samples (N)</label>
+            <input type="number" id="globalSamples" value="1024" min="64" max="16384" step="64" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Min Frequency (Hz)</label>
+            <input type="number" id="globalFreqMin" value="0" min="0" step="0.1" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Max Frequency (Hz)</label>
+            <input type="number" id="globalFreqMax" value="100" min="0" step="0.1" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+          </div>
+        </div>
+        <button onclick="applyGlobalSettings()" class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 font-medium transition">
+          Apply Global Settings
+        </button>
+      </div>
+
+      <!-- Dynamic charts container -->
+      <div id="charts-container" class="space-y-6">
+        <!-- Charts will be dynamically added here -->
+      </div>
+
+      <footer class="mt-8 text-center text-sm text-gray-500">
+        <p>© 2025 KSB Integrated Sensor Monitoring System. All rights reserved.</p>
+      </footer>
+    </div>
+  </main>
+
+  <script>
+    let chartInstances = {}; // Store chart instances by ID
+    let chartCount = 0;
+    const MAX_CHARTS = 5;
+    let sensorNames = {}; // Store sensor names from settings
+    let globalFreqMin = 0;
+    let globalFreqMax = 100;
+
+    async function loadSensorNames() {
+      try {
+        const res = await fetch('/load-sensors');
+        if (res.ok) {
+          const data = await res.json();
+          sensorNames = data;
+          console.log('[FFT] Sensor names loaded:', sensorNames);
+        }
+      } catch (err) {
+        console.error('[FFT] Error loading sensor names:', err);
+      }
+    }
+
+    function createChartHTML(chartId) {
+      return `
+        <div class="chart-item bg-white rounded-xl shadow p-4" data-chart-id="${chartId}">
+          <!-- Control Panel -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 mb-3">
+            <!-- Source Dropdown -->
+            <div>
+              <label class="block text-xs font-medium text-gray-700 mb-1">Data Source</label>
+              <select class="fft-source w-full border border-gray-300 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="sensors">Sensors</option>
+                <option value="engine">Engine</option>
+                <option value="powermeter">Powermeter</option>
+              </select>
+            </div>
+
+            <!-- Channel Dropdown -->
+            <div>
+              <label class="block text-xs font-medium text-gray-700 mb-1">Channel</label>
+              <select class="fft-channel w-full border border-gray-300 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="ch1">CH1</option>
+              </select>
+            </div>
+
+            <!-- Samples Input -->
+            <div>
+              <label class="block text-xs font-medium text-gray-700 mb-1">Samples (N)</label>
+              <input class="fft-n" type="number" min="64" max="16384" step="64" value="1024" class="w-full border border-gray-300 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+
+            <!-- Min Frequency -->
+            <div>
+              <label class="block text-xs font-medium text-gray-700 mb-1">Min Freq (Hz)</label>
+              <input class="fft-freq-min" type="number" min="0" step="0.1" value="0" class="w-full border border-gray-300 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+
+            <!-- Max Frequency -->
+            <div>
+              <label class="block text-xs font-medium text-gray-700 mb-1">Max Freq (Hz)</label>
+              <input class="fft-freq-max" type="number" min="0" step="0.1" value="100" class="w-full border border-gray-300 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+
+            <!-- Remove Button -->
+            <div class="flex items-end">
+              <button class="remove-chart-btn w-full px-2 py-1 rounded-lg bg-red-600 text-white text-xs font-medium hover:bg-red-700 transition">
+                <i class="fas fa-trash mr-1"></i>Remove
+              </button>
+            </div>
+          </div>
+
+          <!-- Chart Display -->
+          <div class="flex items-center justify-between mb-2">
+            <div>
+              <h3 class="chart-title text-sm font-semibold">Channel 1 Spectrum</h3>
+              <p class="chart-info text-xs text-gray-500">Frequency domain analysis</p>
+            </div>
+            <div class="text-right">
+              <p class="text-xs text-gray-600">
+                <span class="font-medium">Sampling Rate:</span> <span class="fs-display">1.0</span> Hz
+              </p>
+              <p class="text-xs text-gray-600">
+                <span class="font-medium">Samples:</span> <span class="n-display">1024</span>
+              </p>
+            </div>
+          </div>
+          <div class="h-64 sm:h-80 md:h-96 mb-2">
+            <canvas class="fft-chart"></canvas>
+          </div>
+
+          <!-- Statistics Panel -->
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <div class="bg-blue-50 rounded-lg p-2">
+              <p class="text-xs text-gray-600">Peak Freq</p>
+              <p class="stat-peak-freq text-lg font-bold text-blue-600">0.00 Hz</p>
+            </div>
+            <div class="bg-green-50 rounded-lg p-2">
+              <p class="text-xs text-gray-600">Peak Amp</p>
+              <p class="stat-peak-amp text-lg font-bold text-green-600">0.00</p>
+            </div>
+            <div class="bg-purple-50 rounded-lg p-2">
+              <p class="text-xs text-gray-600">RMS</p>
+              <p class="stat-rms text-lg font-bold text-purple-600">0.00</p>
+            </div>
+            <div class="bg-orange-50 rounded-lg p-2">
+              <p class="text-xs text-gray-600">Freq Range</p>
+              <p class="stat-freq-range text-lg font-bold text-orange-600">0.00 Hz</p>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function addChart() {
+      if (chartCount >= MAX_CHARTS) {
+        alert(`Maximum ${MAX_CHARTS} charts allowed`);
+        return;
+      }
+
+      chartCount++;
+      const chartId = `chart-${chartCount}`;
+      const container = document.getElementById('charts-container');
+      const chartHTML = createChartHTML(chartId);
+      
+      const div = document.createElement('div');
+      div.innerHTML = chartHTML;
+      container.appendChild(div.firstElementChild);
+
+      updateChartCount();
+      attachChartEventListeners(chartId);
+      updateChannelOptions(chartId);
+      loadFFT(chartId);
+    }
+
+    function removeChart(chartId) {
+      const chartItem = document.querySelector(`[data-chart-id="${chartId}"]`);
+      if (chartItem) {
+        if (chartInstances[chartId]) {
+          chartInstances[chartId].destroy();
+          delete chartInstances[chartId];
+        }
+        chartItem.remove();
+        chartCount--;
+        updateChartCount();
+      }
+    }
+
+    function updateChartCount() {
+      document.getElementById('chart-count').textContent = chartCount;
+      document.getElementById('add-chart-btn').disabled = chartCount >= MAX_CHARTS;
+    }
+
+    function attachChartEventListeners(chartId) {
+      const chartItem = document.querySelector(`[data-chart-id="${chartId}"]`);
+      
+      const sourceSelect = chartItem.querySelector('.fft-source');
+      const channelSelect = chartItem.querySelector('.fft-channel');
+      const nInput = chartItem.querySelector('.fft-n');
+      const freqMinInput = chartItem.querySelector('.fft-freq-min');
+      const freqMaxInput = chartItem.querySelector('.fft-freq-max');
+      const removeBtn = chartItem.querySelector('.remove-chart-btn');
+
+      sourceSelect.addEventListener('change', () => {
+        updateChannelOptions(chartId);
+        loadFFT(chartId);
+      });
+      channelSelect.addEventListener('change', () => loadFFT(chartId));
+      nInput.addEventListener('change', () => loadFFT(chartId));
+      freqMinInput.addEventListener('change', () => loadFFT(chartId));
+      freqMaxInput.addEventListener('change', () => loadFFT(chartId));
+      removeBtn.addEventListener('click', () => removeChart(chartId));
+    }
+
+    function updateChannelOptions(chartId) {
+      const chartItem = document.querySelector(`[data-chart-id="${chartId}"]`);
+      const sourceSelect = chartItem.querySelector('.fft-source');
+      const channelSelect = chartItem.querySelector('.fft-channel');
+      
+      const source = sourceSelect.value;
+      const currentValue = channelSelect.value;
+
+      channelSelect.innerHTML = '';
+
+      if (source === 'sensors') {
+        for (let i = 1; i <= 7; i++) {
+          const option = document.createElement('option');
+          option.value = `ch${i}`;
+          const sensorKey = `sensor${i}`;
+          const sensorName = sensorNames[sensorKey]?.name || `Sensor ${i}`;
+          const sensorUnit = sensorNames[sensorKey]?.unit ? ` (${sensorNames[sensorKey].unit})` : '';
+          option.textContent = `CH${i} - ${sensorName}${sensorUnit}`;
+          channelSelect.appendChild(option);
+        }
+      } else if (source === 'engine') {
+        const engineChannels = [
+          { value: 'e_speed', label: 'Engine Speed' },
+          { value: 'e_load', label: 'Engine Load' },
+          { value: 'e_fuelrate', label: 'Fuel Rate' },
+          { value: 'e_runhour', label: 'Run Hours' },
+          { value: 'e_oilpressure', label: 'Oil Pressure' }
+        ];
+        engineChannels.forEach(ch => {
+          const option = document.createElement('option');
+          option.value = ch.value;
+          option.textContent = ch.label;
+          channelSelect.appendChild(option);
+        });
+      } else if (source === 'powermeter') {
+        const pmChannels = [
+          { value: 'pm_current', label: 'Current' },
+          { value: 'pm_voltage', label: 'Voltage' },
+          { value: 'pm_r', label: 'Active Power' },
+          { value: 'pm_q', label: 'Reactive Power' },
+          { value: 'pm_s', label: 'Apparent Power' }
+        ];
+        pmChannels.forEach(ch => {
+          const option = document.createElement('option');
+          option.value = ch.value;
+          option.textContent = ch.label;
+          channelSelect.appendChild(option);
+        });
+      }
+
+      if (Array.from(channelSelect.options).some(opt => opt.value === currentValue)) {
+        channelSelect.value = currentValue;
+      }
+    }
+
+    function createMainChart(chartId, frequencies, magnitudes, label) {
+      const chartItem = document.querySelector(`[data-chart-id="${chartId}"]`);
+      const canvas = chartItem.querySelector('.fft-chart');
+      const ctx = canvas.getContext('2d');
+      
+      if (chartInstances[chartId]) {
+        chartInstances[chartId].destroy();
+      }
+
+      const newChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: frequencies,
+          datasets: [{
+            label: label,
+            data: magnitudes,
+            borderColor: 'rgba(2, 132, 199, 1)',
+            backgroundColor: 'rgba(2, 132, 199, 0.1)',
+            fill: true,
+            pointRadius: 0,
+            borderWidth: 2,
+            tension: 0.1,
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: {
+              type: 'linear',
+              title: { display: true, text: 'Frequency (Hz)', font: { size: 11, weight: 'bold' } },
+              ticks: { maxTicksLimit: 8 }
+            },
+            y: {
+              title: { display: true, text: 'Amplitude', font: { size: 11, weight: 'bold' } },
+              ticks: { maxTicksLimit: 6 }
+            }
+          },
+          plugins: {
+            legend: { display: true, position: 'top' },
+            tooltip: {
+              mode: 'index',
+              intersect: false,
+              callbacks: {
+                label: (ctx) => `Amplitude: ${ctx.parsed.y.toFixed(6)}`
+              }
+            }
+          }
+        }
+      });
+
+      chartInstances[chartId] = newChart;
+    }
+
+    function updateStatistics(chartId, frequencies, magnitudes) {
+      const chartItem = document.querySelector(`[data-chart-id="${chartId}"]`);
+      
+      let maxIdx = 0;
+      let maxAmp = magnitudes[0];
+      for (let i = 1; i < magnitudes.length; i++) {
+        if (magnitudes[i] > maxAmp) {
+          maxAmp = magnitudes[i];
+          maxIdx = i;
+        }
+      }
+
+      const peakFreq = frequencies[maxIdx] || 0;
+      chartItem.querySelector('.stat-peak-freq').textContent = peakFreq.toFixed(4) + ' Hz';
+      chartItem.querySelector('.stat-peak-amp').textContent = maxAmp.toFixed(6);
+
+      const rms = Math.sqrt(magnitudes.reduce((sum, val) => sum + val * val, 0) / magnitudes.length);
+      chartItem.querySelector('.stat-rms').textContent = rms.toFixed(6);
+
+      const freqMin = Number.parseFloat(chartItem.querySelector('.fft-freq-min').value) || 0;
+      const freqMax = Number.parseFloat(chartItem.querySelector('.fft-freq-max').value) || 100;
+      chartItem.querySelector('.stat-freq-range').textContent = `${freqMin.toFixed(2)} - ${freqMax.toFixed(2)} Hz`;
+    }
+
+    async function loadFFT(chartId) {
+      try {
+        const chartItem = document.querySelector(`[data-chart-id="${chartId}"]`);
+        const sourceSelect = chartItem.querySelector('.fft-source');
+        const channelSelect = chartItem.querySelector('.fft-channel');
+        const nInput = chartItem.querySelector('.fft-n');
+        const freqMinInput = chartItem.querySelector('.fft-freq-min');
+        const freqMaxInput = chartItem.querySelector('.fft-freq-max');
+
+        const source = sourceSelect.value;
+        const channel = channelSelect.value;
+        const n = Math.max(64, Math.min(parseInt(nInput.value || '1024'), 16384));
+        const freqMin = Number.parseFloat(freqMinInput.value || '0');
+        const freqMax = Number.parseFloat(freqMaxInput.value || '100');
+
+        chartItem.querySelector('.n-display').textContent = n;
+
+        const params = new URLSearchParams({
+          source, channel, n: String(n), freqMin: String(freqMin), freqMax: String(freqMax)
+        });
+
+        const res = await fetch(`/api/fft?${params.toString()}`);
+        if (!res.ok) throw new Error(`FFT fetch failed: ${res.status}`);
+
+        const data = await res.json();
+
+        const sourceLabel = source.charAt(0).toUpperCase() + source.slice(1);
+        const channelLabel = channel.toUpperCase();
+        chartItem.querySelector('.chart-title').textContent = `${sourceLabel} - ${channelLabel} Spectrum`;
+        chartItem.querySelector('.chart-info').textContent = `Sampling rate: ${data.fs.toFixed(2)} Hz`;
+        chartItem.querySelector('.fs-display').textContent = data.fs.toFixed(2);
+
+        createMainChart(chartId, data.frequencies, data.magnitude, `${sourceLabel} ${channelLabel}`);
+        updateStatistics(chartId, data.frequencies, data.magnitude);
+
+      } catch (err) {
+        console.error('FFT load error:', err);
+      }
+    }
+
+    function applyGlobalSettings() {
+      const samplingRate = Number.parseFloat(document.getElementById('globalSamplingRate').value) || 1;
+      const samples = Number.parseInt(document.getElementById('globalSamples').value) || 1024;
+      globalFreqMin = Number.parseFloat(document.getElementById('globalFreqMin').value) || 0;
+      globalFreqMax = Number.parseFloat(document.getElementById('globalFreqMax').value) || 100;
+
+      console.log(`[FFT] Applying global settings: SR=${samplingRate}Hz, N=${samples}, FreqRange=${globalFreqMin}-${globalFreqMax}Hz`);
+
+      // Update all charts with global settings
+      document.querySelectorAll('[data-chart-id]').forEach((chartItem) => {
+        const chartId = chartItem.getAttribute('data-chart-id');
+        const nInput = chartItem.querySelector('.fft-n');
+        const freqMinInput = chartItem.querySelector('.fft-freq-min');
+        const freqMaxInput = chartItem.querySelector('.fft-freq-max');
+
+        nInput.value = samples;
+        freqMinInput.value = globalFreqMin;
+        freqMaxInput.value = globalFreqMax;
+
+        loadFFT(chartId);
+      });
+    }
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', async () => {
+      await loadSensorNames();
+      
+      addChart();
+
+      document.getElementById('add-chart-btn').addEventListener('click', addChart);
+    });
+
+    // Sidebar functionality
+    (function initSidebar() {
+      const sidebar = document.getElementById('sidebar');
+      const sidebarToggle = document.getElementById('sidebar-toggle');
+      const sidebarClose = document.getElementById('sidebar-close');
+      const sidebarOverlay = document.getElementById('sidebar-overlay');
+
+      function setAria() {
+        const expanded = sidebar.classList.contains('active');
+        if (sidebarToggle) sidebarToggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+      }
+      function isDesktop() {
+        return window.innerWidth >= 1024;
+      }
+      function showOverlay() {
+        if (isDesktop()) {
+          sidebarOverlay.classList.add('hidden');
+        } else {
+          sidebarOverlay.classList.remove('hidden');
+        }
+      }
+      function hideOverlay() {
+        sidebarOverlay.classList.add('hidden');
+      }
+      function openSidebar() {
+        sidebar.classList.add('active');
+        sidebarToggle.classList.add('active');
+        showOverlay();
+        localStorage.setItem('sidebarState', 'open');
+        setAria();
+        document.dispatchEvent(new CustomEvent('v0:sidebar-changed'));
+      }
+      function closeSidebar() {
+        sidebar.classList.remove('active');
+        sidebarToggle.classList.remove('active');
+        hideOverlay();
+        localStorage.setItem('sidebarState', 'closed');
+        setAria();
+        document.dispatchEvent(new CustomEvent('v0:sidebar-changed'));
+      }
+
+      const stored = localStorage.getItem('sidebarState');
+      if (stored === 'open') {
+        openSidebar();
+      } else if (stored === 'closed') {
+        closeSidebar();
+      } else {
+        isDesktop() ? openSidebar() : closeSidebar();
+      }
+
+      sidebarToggle.addEventListener('click', () => {
+        sidebar.classList.contains('active') ? closeSidebar() : openSidebar();
+      });
+      if (sidebarClose) sidebarClose.addEventListener('click', closeSidebar);
+      sidebarOverlay.addEventListener('click', closeSidebar);
+      
+      document.addEventListener('click', (e) => {
+        const isClickInsideSidebar = sidebar.contains(e.target);
+        const isClickOnToggle = sidebarToggle.contains(e.target);
+        const isSidebarOpen = sidebar.classList.contains('active');
+        
+        if (isSidebarOpen && !isClickInsideSidebar && !isClickOnToggle) {
+          closeSidebar();
+        }
+      });
+      
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && sidebar.classList.contains('active')) closeSidebar();
+      });
+
+      const currentPath = window.location.pathname;
+      document.querySelectorAll('.nav-item').forEach(item => {
+        const href = item.getAttribute('href');
+        if (href === currentPath) item.classList.add('active'); else item.classList.remove('active');
+      });
+
+      window.addEventListener('resize', () => {
+        if (sidebar.classList.contains('active')) showOverlay();
+        setTimeout(() => {
+          if (!localStorage.getItem('sidebarState')) {
+            isDesktop() ? openSidebar() : closeSidebar();
+          } else {
+            document.dispatchEvent(new CustomEvent('v0:sidebar-changed'));
+          }
+        }, 0);
+      });
+    })();
+  </script>
+</body>
+</html>

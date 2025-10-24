@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Create User</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon_.png') }}">
+    <style>
+      body { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; background:#f7f9fb; margin:0; }
+      .wrap { max-width: 720px; margin: 48px auto; padding: 24px; }
+      .card { background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:24px; }
+      .row { display:flex; gap:16px; align-items:center; justify-content:space-between; }
+      label { display:block; font-weight:600; margin:12px 0 6px; }
+      input { width:100%; border:1px solid #e5e7eb; border-radius:10px; padding:10px 12px; font-size:14px; }
+      .btn { display:inline-flex; align-items:center; gap:8px; background:#0ea5e9; color:#fff; padding:10px 14px; border-radius:10px; text-decoration:none; border:none; cursor:pointer; margin-top:16px; }
+      .error { color:#b91c1c; margin-top:10px; }
+      .ok { color:#065f46; margin-top:10px; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="card">
+        <div class="row">
+          <h2 style="margin:0">Create User</h2>
+          <a class="btn" href="{{ url_for('profile') }}">Back</a>
+        </div>
+        <form method="post" action="{{ url_for('users_new') }}">
+          <label for="username">Username</label>
+          <input id="username" name="username" type="text" autocomplete="off" required />
+          <label for="password">Password</label>
+          <input id="password" name="password" type="password" required />
+          <button class="btn" type="submit">Create</button>
+        </form>
+        {% if error %}<div class="error">{{ error }}</div>{% endif %}
+        {% if created %}<div class="ok">Created user <strong>{{ created }}</strong></div>{% endif %}
+      </div>
+    </div>
+  </body>
+</html>

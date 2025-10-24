@@ -2510,7 +2510,4 @@ window.selectTimeRange = (range) => {
     loadEngineDisplay()
   }
   window.showMessage = showNotification
-
-
-
 })
