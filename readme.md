@@ -1,4 +1,4 @@
-# KSB_ISMS_JUNI
+# KSB_ISMS
 
 A Flask-based web application for real-time monitoring and data acquisition using **Modbus TCP** and **SQLite**, developed as part of an internship project at **PT KSB Indonesia**.
 
