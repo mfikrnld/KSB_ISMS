@@ -33,8 +33,8 @@ This application was built to support industrial process monitoring and historic
 ## 🚀 Installation
 
 ```bash
-git clone https://github.com/mfikrnld/KSB_ISMS_JUNI.git
-cd KSB_ISMS_JUNI
+git clone https://github.com/mfikrnld/KSB_ISMS.git
+cd KSB_ISMS
 
 # Create virtual environment
 python -m venv venv
